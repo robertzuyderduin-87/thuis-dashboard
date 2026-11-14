@@ -1442,8 +1442,8 @@ function bkParseGLB(buf){const dv=new DataView(buf),jl=dv.getUint32(12,true),js=
 function bkB64(s){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u.buffer}
 const BK_G=['Begane_grond','Buiten','Dak','Eerste_verdieping','Overig','Plafonds','Zolder'];
 async function bkData(){if(typeof BAKE_GLB!=='undefined')return {glb:bkB64(BAKE_GLB),lm:BAKE_LM};
-  const r=await fetch('bake/huis-bake.glb');if(!r.ok)throw new Error('bake/huis-bake.glb niet gevonden');
-  return {glb:await r.arrayBuffer(),lm:Object.fromEntries(BK_G.map(g=>[g,'bake/LM_'+g+'.jpg']))}}
+  for(const dir of ['bake/','']){const r=await fetch(dir+'huis-bake.glb');if(r.ok)return {glb:await r.arrayBuffer(),lm:Object.fromEntries(BK_G.map(g=>[g,dir+'LM_'+g+'.jpg']))}}
+  throw new Error('huis-bake.glb niet gevonden')}
 async function bkLoad(){let dat;try{dat=await bkData()}catch(e){console.warn(e);return 0}
   const parts=bkParseGLB(dat.glb),tex={};
   await Promise.all(Object.entries(dat.lm).map(([g,src])=>new Promise(ok=>{const im=new Image();im.onload=()=>{const t=new T.Texture(im);t.flipY=false;t.needsUpdate=true;tex[g]=t;ok()};im.onerror=ok;im.src=src})));
