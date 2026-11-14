@@ -121,8 +121,9 @@ body.zoomed .floors,body.zoomed .henkbar,body.zoomed .dock,body.zoomed .hint{opa
 <div id="ask" hidden><div class="askb" role="dialog" aria-labelledby="askT"><h2 id="askT">Ruimte</h2><p>Wat wil je met de verlichting?</p><button data-ask="on" class="on">💡 Alle verlichting aan</button><button data-ask="off" class="off">⏻ Alle verlichting uit</button><button data-ask="x" class="x">Annuleren</button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const T=THREE,app=document.getElementById('app'),rnd=Math.random;
-const R=new T.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=true;app.prepend(R.domElement);
+const T=THREE,app=document.getElementById('app'),rnd=(s=>()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296})(20261114);
+const QB=(()=>{try{return localStorage.getItem('dash_q')!=='mooi'}catch(e){return true}})();
+const R=new T.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=!QB;app.prepend(R.domElement);
 const S=new T.Scene(),C=new T.PerspectiveCamera(40,1,.1,300),SKY=0xbcd4e6;S.background=new T.Color(SKY);
 const hemi=new T.HemisphereLight(0xffffff,0x7a7670,.8),sun=new T.DirectionalLight(0xfff0d8,.95);
 sun.position.set(30,30,16);sun.target.position.set(7,0,-6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
@@ -1464,4 +1465,56 @@ async function lvPoll(){clearTimeout(LV.t);if(!LV.ip||!LV.key){lvStatus();return
 const v_=cv_;
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)lvPoll()});
 lvStatus();lvPoll();
+
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// "‹ Terug"-knop in elke onderbalk (in plaats van naar beneden vegen)
+{const st=document.createElement('style');st.textContent='.shh{display:flex;align-items:center;gap:10px}.shh>:first-child{flex:1;min-width:0}.sback{flex:none;border:0;border-radius:99px;padding:10px 16px;font:600 15px system-ui,sans-serif;background:#1f7a5c;color:#fff}';document.head.appendChild(st);
+ const addBack=()=>{const h=sIn.querySelector('.shh');if(h&&!h.querySelector('.sback')){const b=document.createElement('button');b.className='sback';b.textContent='‹ Terug';b.onclick=e=>{e.stopPropagation();closeRoom()};h.appendChild(b)}};
+ new MutationObserver(addBack).observe(sIn,{childList:true});addBack()}
+
+// ===================== GEBAKKEN LICHT (Blender/Cycles) =====================
+// Elk onderdeel heeft een vast nummer (bid). huis-bake.glb bevat per nummer de vorm met een 2e UV-set,
+// LM_<groep>.jpg is het gebakken licht. Gebakken onderdelen krijgen een licht materiaal: textuur × gebakken licht.
+const BKX={on:false,mats:[],pairs:[],LMI:1.55,FLOOR:{value:.34}};
+// vangnet: gebakken licht nooit onder een minimum (geen zwarte vlakken)
+const bkFloor=sh=>{sh.uniforms.lmFloor=BKX.FLOOR;sh.fragmentShader='uniform float lmFloor;\n'+sh.fragmentShader.replace('lightMapTexelToLinear( lightMapTexel ).rgb * lightMapIntensity','max( lightMapTexelToLinear( lightMapTexel ).rgb * lightMapIntensity, vec3( lmFloor ) )')};
+{let i=0;S.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh)o.userData.bid=i++})}
+function bkParseGLB(buf){const dv=new DataView(buf),jl=dv.getUint32(12,true),js=JSON.parse(new TextDecoder().decode(new Uint8Array(buf,20,jl)));
+  const bo=20+jl+8,bin=buf.slice(bo,bo+dv.getUint32(20+jl,true));
+  const acc=i=>{const a=js.accessors[i],bv=js.bufferViews[a.bufferView],n={SCALAR:1,VEC2:2,VEC3:3,VEC4:4}[a.type],off=(bv.byteOffset||0)+(a.byteOffset||0);
+    const C={5126:Float32Array,5123:Uint16Array,5125:Uint32Array,5121:Uint8Array}[a.componentType];return {arr:new C(bin,off,a.count*n),n}};
+  const out=new Map();
+  js.nodes.forEach(nd=>{if(nd.mesh==null||!nd.extras||nd.extras.bid==null)return;const p=js.meshes[nd.mesh].primitives[0],at=p.attributes,g=new T.BufferGeometry();
+    const put=(k,name)=>{if(at[k]==null)return;const a=acc(at[k]);g.setAttribute(name,new T.BufferAttribute(a.arr,a.n))};
+    put('POSITION','position');put('NORMAL','normal');put('TEXCOORD_0','uv');put('TEXCOORD_1','uv2');
+    if(p.indices!=null){const a=acc(p.indices);g.setIndex(new T.BufferAttribute(a.arr,1))}
+    g.computeBoundingSphere();out.set(nd.extras.bid,{g,lm:nd.extras.lm})});
+  return out}
+function bkB64(s){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u.buffer}
+const BK_G=['Begane_grond','Buiten','Dak','Eerste_verdieping','Overig','Plafonds','Zolder'];
+async function bkData(){if(typeof BAKE_GLB!=='undefined')return {glb:bkB64(BAKE_GLB),lm:BAKE_LM};
+  const r=await fetch('bake/huis-bake.glb');if(!r.ok)throw new Error('bake/huis-bake.glb niet gevonden');
+  return {glb:await r.arrayBuffer(),lm:Object.fromEntries(BK_G.map(g=>[g,'bake/LM_'+g+'.jpg']))}}
+async function bkLoad(){let dat;try{dat=await bkData()}catch(e){console.warn(e);return 0}
+  const parts=bkParseGLB(dat.glb),tex={};
+  await Promise.all(Object.entries(dat.lm).map(([g,src])=>new Promise(ok=>{const im=new Image();im.onload=()=>{const t=new T.Texture(im);t.flipY=false;t.needsUpdate=true;tex[g]=t;ok()};im.onerror=ok;im.src=src})));
+  const cache=new Map();let n=0;
+  S.traverse(o=>{if(!o.isMesh||o.isInstancedMesh)return;const b=parts.get(o.userData.bid);if(!b||!tex[b.lm]||Array.isArray(o.material))return;
+    if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();if(!b.g.boundingBox)b.g.computeBoundingBox();
+    {const A=o.geometry.boundingBox,B=b.g.boundingBox,tol=.01+.01*A.max.distanceTo(A.min);if(A.min.distanceTo(B.min)>tol||A.max.distanceTo(B.max)>tol){BKX.miss=(BKX.miss||0)+1;return}}
+    const om=o.material,key=om.uuid+'|'+b.lm;let nm=cache.get(key);
+    if(!nm){nm=new T.MeshBasicMaterial({color:om.color?om.color.clone():0xffffff,map:om.map||null,lightMap:tex[b.lm],lightMapIntensity:BKX.LMI,
+        transparent:om.transparent,opacity:om.opacity,alphaTest:om.alphaTest,side:om.side,vertexColors:om.vertexColors,depthWrite:om.depthWrite});
+      nm.onBeforeCompile=bkFloor;cache.set(key,nm);BKX.mats.push(nm);BKX.pairs.push([om,nm])}
+    o.geometry=b.g;o.material=nm;o.castShadow=o.receiveShadow=false;n++});
+  BKX.on=n>0;return n}
+function bkSync(){if(!BKX.on)return;const li=night?.4:BKX.LMI;BKX.FLOOR.value=night?.1:.34;
+  BKX.pairs.forEach(([o,b])=>{if(b.transparent!==o.transparent||b.opacity!==o.opacity||b.depthWrite!==o.depthWrite){b.transparent=o.transparent;b.opacity=o.opacity;b.depthWrite=o.depthWrite;b.needsUpdate=true}
+    if(o.color&&!b.color.equals(o.color))b.color.copy(o.color);b.lightMapIntensity=li})}
+{const _ap=apply;apply=function(){_ap.apply(this,arguments);bkSync()}}
+if(typeof xray!=='undefined'&&typeof view==='function'){const _vw=view;view=function(){_vw.apply(this,arguments);if(!(xray||lvl!==3||inside))D.forEach(d=>{if(d.m)d.m.visible=false});bkSync()};view()}
+if(QB)bkLoad().then(n=>{if(!n){toast('⚠️ Gebakken licht niet gevonden, gewone weergave');if(typeof R!=='undefined'){R.shadowMap.enabled=true;S.traverse(o=>{if(o.material&&!Array.isArray(o.material))o.material.needsUpdate=true})}return}
+  // gebakken: geen live schaduw nodig; zon zwakker, alleen voor planten en lampen
+  sun.castShadow=false;bkSync();if(typeof kick==='function')kick(1,30);console.log('gebakken onderdelen:',n,'niet passend:',BKX.miss||0);if(BKX.miss)toast('🔥 Gebakken licht: '+n+' onderdelen ('+BKX.miss+' overgeslagen)')});
 </script>
