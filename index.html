@@ -1218,13 +1218,13 @@ const PANELS={keuken:{t:'Keuken & Eetkamer',rooms:['Keuken','Eetkamer'],
   info:[['Tuindeur','Dicht','ok'],['Beweging','Net nog'],['Tablet','37 %']]}};
 let rpCur=null,rpOpen=true;
 // welke apparaten horen bij welke ruimte (naam zoals in het model)
-const RDEV={'Woonkamer':['Woonkamer','Lichtkoof woonkamer','Spots woonkamer','Thermostaat'],'Gang':['Gang','Voordeur','Overkapping voordeur','Camera voorzijde'],
+const RDEV={'Woonkamer':['Woonkamer','Lichtkoof woonkamer','Spots woonkamer','Thermostaat'],'Gang':['Gang','Voordeur'],
  'Toilet':['Toilet'],'Kantoor':['Kantoor'],'Garage':['Garage','Garage buiten','Camera garage','Deur garage straatzijde','Deur garage tuinzijde'],
- 'Tuin':['Overstek tuin','Grondspots achtertuin','Lamp poort'],'Veranda':['Hanglampen buitenkeuken','Wandlampen veranda'],'Zijtuin':['Tuinspots zijtuin'],
- 'Voortuin':['Overkapping voordeur','Voordeur','Camera voorzijde'],'Overloop':['CO₂-sensor'],'Slaapkamer voor':['Slaapkamer','Raam Iva'],'Slaapkamer achter':['Slaapkamer 2','Raam R&M'],
+ 'Tuin':['Spots garage achter','Grondspots achtertuin','Lamp poort'],'Veranda':['Hanglampen buitenkeuken','Wandlampen veranda'],'Zijtuin':['Overstek tuin','Tuinspots zijtuin'],
+ 'Voortuin':['Overkapping voordeur','WCD voordeur','Camera voorzijde'],'Overloop':['CO₂-sensor'],'Slaapkamer voor':['Slaapkamer','Raam Iva'],'Slaapkamer achter':['Slaapkamer 2','Raam R&M'],
  'Lio':['Spots Lio','Babyfoon Lio','Raam1 Lio','Raam2 Lio'],'Emi':['Spots Emi','Babyfoon Emi','Raam Emi'],'Overloop zolder':['Spots overloop zolder','Raam1 overloop zolder','Raam2 overloop zolder']};
 // extra Homey-apparaten die niet in het 3D-model staan
-const XL=[{n:'Lamp poort',n0:'Lamp poort',t:'light',on:false,x:1}];
+const XL=[{n:'Lamp poort',n0:'Lamp poort',t:'light',on:false,x:1},{n:'WCD voordeur',n0:'WCD voordeur',t:'light',on:false,x:1}];
 const devOf=room=>(RDEV[room]||[]).map(n=>D.concat(XL).find(d=>(d.n0||d.n)===n)).filter(Boolean);
 function rpFor(room){const key=Object.keys(PANELS).find(k=>PANELS[k].rooms.includes(room));rpCur=key?PANELS[key]:room?{gen:true,t:room}:null;rpOpen=true;rpRender()}
 function rpGen(){const P=rpCur,ds=devOf(P.t),L=ds.filter(d=>d.t==='light'),O=ds.filter(d=>d.t!=='light'),anyOn=L.some(d=>d.on);
@@ -1322,9 +1322,22 @@ addEventListener('resize',()=>kick(1));document.addEventListener('visibilitychan
 // ===================== LIVE: koppeling met Homey (lokaal via wifi) =====================
 // De tablet praat rechtstreeks met de Homey: http://<ip>/api/... met de API-sleutel uit de verbindingstest.
 const HM={'Woonkamer':'Bank Zijde','Lichtkoof woonkamer':'Ledstrip woonkamer','Spots woonkamer':'TV Zijde','Gang':'Spots gang','Toilet':'Verlichting toilet',
-  'Kantoor':'Spots Kantoor','Thermostaat':'Thermostaat woonkamer','Voordeur':'Deurcontact voordeur','Overkapping voordeur':'Afdak Voordeur','Overstek tuin':'Overstek Achtertuin',
+  'Kantoor':'Spots Kantoor','Thermostaat':'Thermostaat woonkamer','Voordeur':'Deurcontact voordeur','Overkapping voordeur':'Afdak Voordeur','Overstek tuin':'Overstek Voortuin','Spots kantoor':'Overstek Achtertuin','Spots garage achter':'Overstek Achtertuin',
   'Garage buiten':'Spots overstek garage','Wandlampen veranda':'Up downlights veranda','Grondspots achtertuin':'Prikspots','Tuinspots zijtuin':'Down Lights Voortuin',
   'Camera voorzijde':'Camera voordeur','Spots overloop zolder':'Spots Overloop Zolder'};
+// vaste Homey-ID's: hernoemen in Homey breekt de koppeling niet meer
+const HID={'Woonkamer':'04197bd6-1486-4b6e-af99-c88c9eb41aa6','Lichtkoof woonkamer':'61f2aefa-2424-4a13-a542-ebc504c35ecb','Spots woonkamer':'cc4f18c6-d20d-4d77-b8b3-e1d7f4ecea4e',
+ 'Gang':'af36a2e7-66a4-46d8-b288-97247c275b53','Toilet':'e317ba7e-cb2c-496f-8bb4-4cee459b975e','Kantoor':'b8dd48a3-53ba-49b3-a325-ae9535957acf','Thermostaat':'148a8d3d-8038-4250-a3b4-2399abe3aa98',
+ 'Voordeur':'b082cbab-7697-4923-bae5-7937237ff324','Overkapping voordeur':'e1b9e145-4832-48e6-a64c-6f91a272deec','Overstek tuin':'012c4464-cacf-4dad-959b-8ae8d45e1ec8',
+ 'Spots kantoor':'d62e15e7-5176-4846-9ba1-2737c5492894','Spots garage achter':'d62e15e7-5176-4846-9ba1-2737c5492894','Garage buiten':'f81c12df-2ee9-4f13-9ade-65d6546b3304',
+ 'Wandlampen veranda':'d20b9579-f053-4c2f-9feb-bbfd55190293','Grondspots achtertuin':'73680883-404c-4492-8c49-c1ae90345e2b','Tuinspots zijtuin':'e9138e1c-28af-4886-bb36-613b09f473cd',
+ 'Camera voorzijde':'7f62707c-6b5f-4a90-a436-faec3fa851b9','Spots overloop zolder':'ae7c4902-4dbb-45cf-8389-c09f2c3c1c6b','Hanglampen buitenkeuken':'61f54c6d-618d-4140-8c4f-7c6d9b878b53',
+ 'Spots Lio':'9b60fa5d-0377-465a-a111-8845d24e77bb','Spots Emi':'27eb8517-681f-4d1d-94aa-02cb8eca2905','Babyfoon Lio':'03792c39-ca01-455d-b63e-03f1f80fb6ba','Babyfoon Emi':'f628ca3f-af6f-4a89-9b98-9a0b303e9a90',
+ 'Raam Iva':'9107e679-93e9-4e40-be11-59a5df71cec2','Raam R&M':'d48889f4-6db0-492c-9827-144fccc6d285','Raam1 Lio':'f66c256d-de00-41e6-9850-c1e233413c74','Raam2 Lio':'76963df5-d218-4f26-9eb5-b61f79986b34',
+ 'Raam Emi':'cb01917f-5331-47dc-90e3-154443b4f6d1','Raam1 overloop zolder':'76a401ba-f991-40e2-b68e-49d6bc337221','Raam2 overloop zolder':'48445fc8-d667-40d9-9434-b8cffd64103b',
+ 'Deur garage straatzijde':'ec965b2f-4af7-4cee-87e7-509a92442b51','Deur garage tuinzijde':'8f276635-d027-453a-8de8-ac778f7898f4','Camera garage':'945711e4-ae09-45b4-8008-26f7af72a224',
+ 'Schuifpui':'ce224c12-3653-45ec-b659-230e5cf095de','Tuindeur':'32040e15-063c-46f0-97fd-587590e5b096','Achterdeur':'a16c5899-6f14-438e-abac-7dd88c199428','Schuurdeur':'43146ae1-9450-405a-b44f-0cf8efcda085',
+ 'Spot overloop':'981acc3b-cb6c-4042-b1ce-058515bc147c','Ledstrip overloop':'b2e9b365-6a7b-4669-88ed-a2f01caace8e','Lamp poort':'a08136c4-44f0-4e1e-a235-9f4c10bd9461','WCD voordeur':'41a2885e-f30f-4b67-bb07-29d252e9d8db'};
 const LV={ip:'',key:'',ok:false,err:'',t:null,last:0};
 try{LV.ip=localStorage.getItem('homey_ip')||'';LV.key=localStorage.getItem('homey_key')||''}catch(e){}
 D.forEach(d=>{d.n0=d.n});
@@ -1363,8 +1376,8 @@ async function lvPoll(){clearTimeout(LV.t);
   if(!LV.ip||!LV.key){lvStatus();return}
   try{const r=await fetch(lvBase()+'/api/manager/devices/device/',{headers:lvH(),cache:'no-store'});
     if(r.status===401||r.status===403)throw new Error('sleutel geweigerd ('+r.status+')');if(!r.ok)throw new Error('fout '+r.status);
-    const all=Object.values(await r.json()),by=new Map(all.map(h=>[h.name.toLowerCase().trim(),h]));let ch=false;
-    D.concat(typeof XL!=='undefined'?XL:[]).forEach(d=>{if(d.n0==='Spots kantoor'||d.n0==='Spots garage achter'){d.hid=null;if(d.on){d.on=false;ch=true}return}const h=by.get((HM[d.n0]||d.n0).toLowerCase().trim());if(!h){d.hid=null;return}
+    const all=Object.values(await r.json()),by=new Map(all.map(h=>[h.name.toLowerCase().trim(),h])),byId=new Map(all.map(h=>[h.id,h]));let ch=false;
+    D.concat(typeof XL!=='undefined'?XL:[]).forEach(d=>{const h=(HID[d.n0]&&byId.get(HID[d.n0]))||by.get((HM[d.n0]||d.n0).toLowerCase().trim());if(!h){d.hid=null;return}
       d.hid=h.id;if(d.n!==h.name){d.n=h.name;ch=true}const c=h.capabilitiesObj||{},v=k=>c[k]?c[k].value:undefined;
       if(d.t==='light'){if(d.busy&&Date.now()<d.busy)return;const on=!!v('onoff'),dm=v('dim');d.hasDim=dm!==undefined;
         if(on!==d.on||(dm!==undefined&&Math.abs((d.dim??1)-dm)>.01)){d.on=on;if(dm!==undefined)d.dim=dm;ch=true}d.sOn=d.on;d.sDim=d.dim}

@@ -1347,24 +1347,37 @@ setTimeout(()=>$('#hint').classList.add('gone'),4500);
 
 // ===================== LIVE (telefoon): koppeling met Homey via wifi =====================
 const HM={'Woonkamer':'Bank Zijde','Lichtkoof woonkamer':'Ledstrip woonkamer','Spots woonkamer':'TV Zijde','Gang':'Spots gang','Toilet':'Verlichting toilet',
-  'Kantoor':'Spots Kantoor','Thermostaat':'Thermostaat woonkamer','Voordeur':'Deurcontact voordeur','Overkapping voordeur':'Afdak Voordeur','Overstek tuin':'Overstek Achtertuin',
+  'Kantoor':'Spots Kantoor','Thermostaat':'Thermostaat woonkamer','Voordeur':'Deurcontact voordeur','Overkapping voordeur':'Afdak Voordeur','Overstek tuin':'Overstek Voortuin','Spots kantoor':'Overstek Achtertuin','Spots garage achter':'Overstek Achtertuin',
   'Garage buiten':'Spots overstek garage','Wandlampen veranda':'Up downlights veranda','Grondspots achtertuin':'Prikspots','Tuinspots zijtuin':'Down Lights Voortuin',
   'Camera voorzijde':'Camera voordeur','Spots overloop zolder':'Spots Overloop Zolder'};
 const TH={Woonkamer:'Thermostaat woonkamer',Kantoor:'Thermostaat kantoor','Slaapkamer achter':'Thermostaat slaapkamer','Slaapkamer voor':'Thermostaat Iva',Lio:'Thermostaat Lio'};
 const SON={'Sonos slaapkamer achter':'Sonos slaapkamer'};
-const LV={ip:'',key:'',ok:false,err:'',t:null,all:[],by:new Map()};
+// vaste Homey-ID's: hernoemen in Homey breekt de koppeling niet meer
+const HID={'Woonkamer':'04197bd6-1486-4b6e-af99-c88c9eb41aa6','Lichtkoof woonkamer':'61f2aefa-2424-4a13-a542-ebc504c35ecb','Spots woonkamer':'cc4f18c6-d20d-4d77-b8b3-e1d7f4ecea4e',
+ 'Gang':'af36a2e7-66a4-46d8-b288-97247c275b53','Toilet':'e317ba7e-cb2c-496f-8bb4-4cee459b975e','Kantoor':'b8dd48a3-53ba-49b3-a325-ae9535957acf','Thermostaat':'148a8d3d-8038-4250-a3b4-2399abe3aa98',
+ 'Voordeur':'b082cbab-7697-4923-bae5-7937237ff324','Overkapping voordeur':'e1b9e145-4832-48e6-a64c-6f91a272deec','Overstek tuin':'012c4464-cacf-4dad-959b-8ae8d45e1ec8',
+ 'Spots kantoor':'d62e15e7-5176-4846-9ba1-2737c5492894','Spots garage achter':'d62e15e7-5176-4846-9ba1-2737c5492894','Garage buiten':'f81c12df-2ee9-4f13-9ade-65d6546b3304',
+ 'Wandlampen veranda':'d20b9579-f053-4c2f-9feb-bbfd55190293','Grondspots achtertuin':'73680883-404c-4492-8c49-c1ae90345e2b','Tuinspots zijtuin':'e9138e1c-28af-4886-bb36-613b09f473cd',
+ 'Camera voorzijde':'7f62707c-6b5f-4a90-a436-faec3fa851b9','Spots overloop zolder':'ae7c4902-4dbb-45cf-8389-c09f2c3c1c6b','Hanglampen buitenkeuken':'61f54c6d-618d-4140-8c4f-7c6d9b878b53',
+ 'Spots Lio':'9b60fa5d-0377-465a-a111-8845d24e77bb','Spots Emi':'27eb8517-681f-4d1d-94aa-02cb8eca2905','Babyfoon Lio':'03792c39-ca01-455d-b63e-03f1f80fb6ba','Babyfoon Emi':'f628ca3f-af6f-4a89-9b98-9a0b303e9a90',
+ 'Raam Iva':'9107e679-93e9-4e40-be11-59a5df71cec2','Raam R&M':'d48889f4-6db0-492c-9827-144fccc6d285','Raam1 Lio':'f66c256d-de00-41e6-9850-c1e233413c74','Raam2 Lio':'76963df5-d218-4f26-9eb5-b61f79986b34',
+ 'Raam Emi':'cb01917f-5331-47dc-90e3-154443b4f6d1','Raam1 overloop zolder':'76a401ba-f991-40e2-b68e-49d6bc337221','Raam2 overloop zolder':'48445fc8-d667-40d9-9434-b8cffd64103b',
+ 'Deur garage straatzijde':'ec965b2f-4af7-4cee-87e7-509a92442b51','Deur garage tuinzijde':'8f276635-d027-453a-8de8-ac778f7898f4','Camera garage':'945711e4-ae09-45b4-8008-26f7af72a224',
+ 'Schuifpui':'ce224c12-3653-45ec-b659-230e5cf095de','Tuindeur':'32040e15-063c-46f0-97fd-587590e5b096','Achterdeur':'a16c5899-6f14-438e-abac-7dd88c199428','Schuurdeur':'43146ae1-9450-405a-b44f-0cf8efcda085',
+ 'Spot overloop':'981acc3b-cb6c-4042-b1ce-058515bc147c','Ledstrip overloop':'b2e9b365-6a7b-4669-88ed-a2f01caace8e','Lamp poort':'a08136c4-44f0-4e1e-a235-9f4c10bd9461','WCD voordeur':'41a2885e-f30f-4b67-bb07-29d252e9d8db'};
+const LV={ip:'',key:'',ok:false,err:'',t:null,all:[],by:new Map(),byId:new Map()};
 try{LV.ip=localStorage.getItem('homey_ip')||'';LV.key=localStorage.getItem('homey_key')||''}catch(e){}
 D.forEach(d=>{d.n0=d.n});
 // extra apparaten uit Homey die niet in het 3D-model staan, toch in de juiste ruimte
 const LX=[];
 [['0|Woonkamer','Schuifpui','door','Deurcontact schuifpui'],['0|Keuken','Tuindeur','door','Deurcontact tuindeur'],['0|Kantoor','Achterdeur','door','Deurcontact achterdeur'],
  ['0|Tuin','Schuurdeur','door','Deurcontact schuurdeur'],['1|Overloop','Spot overloop','light','Spot overloop 1e'],['1|Overloop','Ledstrip overloop','light','Ledstrip overloop'],
- ['0|Tuin','Lamp poort','light','Lamp poort'],['0|Voortuin','Overstek voortuin','light','Overstek Voortuin']].forEach(([k,n,t,h])=>{const r=ZM[k];if(!r)return;
+ ['0|Tuin','Lamp poort','light','Lamp poort'],['0|Voortuin','WCD voordeur','light','Buiten WCD Voordeur']].forEach(([k,n,t,h])=>{const r=ZM[k];if(!r)return;
   const d={n,n0:h,t,v:t==='door'?'Dicht':undefined,on:false,x:1,room:r};r.dev.push(d);LX.push(d)});
 const ALL=()=>D.concat(LX);
 // correcties indeling: dubbele kantoorspots weg, nep-lamp weg, garage-overstekspots in de tuin
 {const mv=(n0,to)=>{const d=D.find(x=>x.n0===n0);if(!d)return;Object.values(ZM).forEach(r=>{const i=r.dev.indexOf(d);if(i>=0)r.dev.splice(i,1)});if(to&&ZM[to])ZM[to].dev.push(d);return d};
- mv('Kantoor','0|Kantoor');{const k=mv('Spots kantoor',null);if(k){k.on=false;k.x2=1}}mv('Garage buiten','0|Garage');const g=mv('Spots garage achter',null);if(g){g.on=false;g.x2=1}}
+ mv('Kantoor','0|Kantoor');mv('Spots kantoor',null);mv('Garage buiten','0|Garage');mv('Spots garage achter','0|Tuin');mv('Overstek tuin','0|Zijtuin');mv('Tuinspots zijtuin','0|Zijtuin');mv('Overkapping voordeur','0|Voortuin');mv('Camera voorzijde','0|Voortuin');mv('Voordeur','0|Gang');mv('Overstek tuin','0|Zijtuin')}
 // op een https-webadres moet Homey ook via https: https://192-168-178-xx.homey.homeylocal.com
 const lvBase=()=>{const ip=LV.ip.replace(/^https?:\/\//,'').replace(/\/$/,'');return location.protocol==='https:'&&/^\d+\.\d+\.\d+\.\d+$/.test(ip)?'https://'+ip.replace(/\./g,'-')+'.homey.homeylocal.com':'http://'+ip};
 const lvH=()=>({'Authorization':'Bearer '+LV.key,'Content-Type':'application/json'});
@@ -1441,8 +1454,8 @@ let lvFirst=true;
 async function lvPoll(){clearTimeout(LV.t);if(!LV.ip||!LV.key){lvStatus();return}
   try{const r=await fetch(lvBase()+'/api/manager/devices/device/',{headers:lvH(),cache:'no-store'});
     if(r.status===401||r.status===403)throw new Error('sleutel geweigerd');if(!r.ok)throw new Error('fout '+r.status);
-    LV.all=Object.values(await r.json());LV.by=new Map(LV.all.map(h=>[h.name.toLowerCase().trim(),h]));let ch=false;const wasOk=LV.ok;LV.ok=true;
-    ALL().forEach(d=>{if(d.x2)return;const h=hdev(HM[d.n0]||d.n0);if(!h){d.hid=null;return}d.hid=h.id;const v=k=>cv_(h,k);
+    LV.all=Object.values(await r.json());LV.by=new Map(LV.all.map(h=>[h.name.toLowerCase().trim(),h]));LV.byId=new Map(LV.all.map(h=>[h.id,h]));let ch=false;const wasOk=LV.ok;LV.ok=true;
+    ALL().forEach(d=>{if(d.x2)return;const h=(HID[d.n0]&&LV.byId.get(HID[d.n0]))||(HID[d.n]&&LV.byId.get(HID[d.n]))||hdev(HM[d.n0]||d.n0);if(!h){d.hid=null;return}d.hid=h.id;const v=k=>cv_(h,k);
       if(d.t==='light'){if(d.busy&&Date.now()<d.busy)return;const on=!!v('onoff'),dm=v('dim');d.hasDim=dm!==undefined;
         if(on!==!!d.on||(dm!==undefined&&Math.abs((d.dim??1)-dm)>.01)){d.on=on;if(dm!==undefined)d.dim=dm;ch=true}d.sOn=!!d.on;d.sDim=d.dim}
       else if(d.t==='door'){const o=v('alarm_contact');if(o!==undefined){const s=o?'Open':'Dicht';if(s!==d.v){d.v=s;ch=true;if(!lvFirst&&o)toast('🪟 '+d.n+' is open')}}}
