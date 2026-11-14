@@ -132,18 +132,19 @@ sun.position.set(30,30,16);sun.target.position.set(7,0,-6);sun.castShadow=true;s
 Object.assign(sun.shadow.camera,{left:-26,right:26,top:26,bottom:-26,far:100});S.add(hemi,sun,sun.target);
 // ---- textures ----
 const cv=(w,h,fn)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=4;return t};
-const brickT=()=>cv(256,256,(g,w,h)=>{g.fillStyle='#c9bdb0';g.fillRect(0,0,w,h);for(let r=0;r<16;r++)for(let c=-1;c<8;c++){const x=c*32+(r%2?16:0),v=rnd();g.fillStyle=`hsl(${10+v*12},${35+v*18}%,${34+rnd()*16}%)`;g.fillRect(x+1,r*16+1,30,14)}});
-const roofT=()=>cv(128,128,(g)=>{for(let i=0;i<4;i++){g.fillStyle=`hsl(${200+rnd()*20},${4+rnd()*4}%,${20+rnd()*7}%)`;g.fillRect(i*32,0,32,128);g.fillStyle='rgba(255,255,255,.07)';g.fillRect(i*32+4,0,10,128)}g.fillStyle='rgba(0,0,0,.4)';for(let j=0;j<4;j++)g.fillRect(0,j*32,128,3)});
-const woodT=()=>cv(128,128,(g)=>{for(let r=0;r<8;r++){g.fillStyle=`hsl(35,12%,${58+rnd()*10}%)`;g.fillRect(0,r*16,128,16);g.fillStyle='rgba(0,0,0,.3)';g.fillRect(0,r*16,128,2)}});
-const grassT=()=>cv(128,128,(g,w,h)=>{g.fillStyle='#6f8a52';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.fillStyle=`hsl(${85+rnd()*30},${30+rnd()*20}%,${28+rnd()*18}%)`;g.fillRect(rnd()*w,rnd()*h,2,2)}});
-const payT=c=>cv(128,128,(g,w,h)=>{g.fillStyle='#666';g.fillRect(0,0,w,h);const b=new T.Color(c);for(let r=0;r<16;r++)for(let k=-1;k<8;k++){g.fillStyle='#'+b.clone().multiplyScalar(.85+rnd()*.3).getHexString();g.fillRect(k*16+(r%2?8:0)+1,r*8+1,14,6)}});
+const tgT=(k,t,p)=>{t.userData.kind=k;t.userData.p=p;return t};
+const brickT=()=>tgT('brick',cv(256,256,(g,w,h)=>{g.fillStyle='#c9bdb0';g.fillRect(0,0,w,h);for(let r=0;r<16;r++)for(let c=-1;c<8;c++){const x=c*32+(r%2?16:0),v=rnd();g.fillStyle=`hsl(${10+v*12},${35+v*18}%,${34+rnd()*16}%)`;g.fillRect(x+1,r*16+1,30,14)}}));
+const roofT=()=>tgT('roof',cv(128,128,(g)=>{for(let i=0;i<4;i++){g.fillStyle=`hsl(${200+rnd()*20},${4+rnd()*4}%,${20+rnd()*7}%)`;g.fillRect(i*32,0,32,128);g.fillStyle='rgba(255,255,255,.07)';g.fillRect(i*32+4,0,10,128)}g.fillStyle='rgba(0,0,0,.4)';for(let j=0;j<4;j++)g.fillRect(0,j*32,128,3)}));
+const woodT=()=>tgT('wood',cv(128,128,(g)=>{for(let r=0;r<8;r++){g.fillStyle=`hsl(35,12%,${58+rnd()*10}%)`;g.fillRect(0,r*16,128,16);g.fillStyle='rgba(0,0,0,.3)';g.fillRect(0,r*16,128,2)}}));
+const grassT=()=>tgT('grass',cv(128,128,(g,w,h)=>{g.fillStyle='#6f8a52';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.fillStyle=`hsl(${85+rnd()*30},${30+rnd()*20}%,${28+rnd()*18}%)`;g.fillRect(rnd()*w,rnd()*h,2,2)}}));
+const payT=c=>tgT('pay',cv(128,128,(g,w,h)=>{g.fillStyle='#666';g.fillRect(0,0,w,h);const b=new T.Color(c);for(let r=0;r<16;r++)for(let k=-1;k<8;k++){g.fillStyle='#'+b.clone().multiplyScalar(.85+rnd()*.3).getHexString();g.fillRect(k*16+(r%2?8:0)+1,r*8+1,14,6)}}),c);
 const M=(c,o={})=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.85},o));
 const mt=(t,s)=>{const m=M(0xffffff,{map:t,roughness:.92});if(s)m.userData.s=s;return m};
 const BR=mt(brickT(),[1.76,1.2]),RF=mt(roofT()),WD=mt(woodT(),[1,1.1]),BG=mt(brickT());BG.map.repeat.set(1/1.76,1/1.2);
 const WH=M(0xf1eee8),DK=M(0x2b3138),GY=M(0x8a9094),SL=M(0x2d3338),BK=M(0x111418),FL=M(0xb9b2a6),RM=M(0x3a3f44),DC=M(0x1e2f3d),DP=M(0x28405a);
-const cladT=()=>cv(128,128,(g)=>{for(let r=0;r<8;r++){g.fillStyle=`hsl(35,5%,${70+rnd()*8}%)`;g.fillRect(0,r*16,128,16);g.fillStyle='rgba(0,0,0,.28)';g.fillRect(0,r*16,128,2)}});
-const fenceT=()=>cv(128,128,(g)=>{for(let c=0;c<8;c++){g.fillStyle=`hsl(35,6%,${68+rnd()*8}%)`;g.fillRect(c*16,0,16,128);g.fillStyle='rgba(0,0,0,.25)';g.fillRect(c*16,0,2,128)}});
-const deckT=()=>cv(128,128,(g)=>{for(let r=0;r<8;r++){g.fillStyle=`hsl(14,45%,${17+rnd()*6}%)`;g.fillRect(0,r*16,128,16);g.fillStyle='rgba(0,0,0,.45)';g.fillRect(0,r*16,128,1.5)}});
+const cladT=()=>tgT('clad',cv(128,128,(g)=>{for(let r=0;r<8;r++){g.fillStyle=`hsl(35,5%,${70+rnd()*8}%)`;g.fillRect(0,r*16,128,16);g.fillStyle='rgba(0,0,0,.28)';g.fillRect(0,r*16,128,2)}}));
+const fenceT=()=>tgT('fence',cv(128,128,(g)=>{for(let c=0;c<8;c++){g.fillStyle=`hsl(35,6%,${68+rnd()*8}%)`;g.fillRect(c*16,0,16,128);g.fillStyle='rgba(0,0,0,.25)';g.fillRect(c*16,0,2,128)}}));
+const deckT=()=>tgT('deck',cv(128,128,(g)=>{for(let r=0;r<8;r++){g.fillStyle=`hsl(14,45%,${17+rnd()*6}%)`;g.fillRect(0,r*16,128,16);g.fillStyle='rgba(0,0,0,.45)';g.fillRect(0,r*16,128,1.5)}}));
 const CL=mt(cladT(),[2,1.6]),FN=mt(fenceT(),[1.6,2]);
 const uvs=(g,w,h,d,su,sv)=>{const u=g.attributes.uv,D=[[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];for(let f=0;f<6;f++)for(let i=0;i<4;i++){const k=f*4+i;u.setXY(k,u.getX(k)*D[f][0]/su,u.getY(k)*D[f][1]/sv)}};
 const box=(g,w,h,d,x,y,z,m)=>{const ge=new T.BoxGeometry(w,h,d);if(m.userData.s)uvs(ge,w,h,d,...m.userData.s);const b=new T.Mesh(ge,m);b.position.set(x,y,z);b.castShadow=b.receiveShadow=true;g.add(b);return b};
@@ -1358,9 +1359,12 @@ D.forEach(d=>{d.n0=d.n});
 const LX=[];
 [['0|Woonkamer','Schuifpui','door','Deurcontact schuifpui'],['0|Keuken','Tuindeur','door','Deurcontact tuindeur'],['0|Kantoor','Achterdeur','door','Deurcontact achterdeur'],
  ['0|Tuin','Schuurdeur','door','Deurcontact schuurdeur'],['1|Overloop','Spot overloop','light','Spot overloop 1e'],['1|Overloop','Ledstrip overloop','light','Ledstrip overloop'],
- ['0|Voortuin','Lamp poort','light','Lamp poort'],['0|Voortuin','Overstek voortuin','light','Overstek Voortuin']].forEach(([k,n,t,h])=>{const r=ZM[k];if(!r)return;
+ ['0|Tuin','Lamp poort','light','Lamp poort'],['0|Voortuin','Overstek voortuin','light','Overstek Voortuin']].forEach(([k,n,t,h])=>{const r=ZM[k];if(!r)return;
   const d={n,n0:h,t,v:t==='door'?'Dicht':undefined,on:false,x:1,room:r};r.dev.push(d);LX.push(d)});
 const ALL=()=>D.concat(LX);
+// correcties indeling: dubbele kantoorspots weg, nep-lamp weg, garage-overstekspots in de tuin
+{const mv=(n0,to)=>{const d=D.find(x=>x.n0===n0);if(!d)return;Object.values(ZM).forEach(r=>{const i=r.dev.indexOf(d);if(i>=0)r.dev.splice(i,1)});if(to&&ZM[to])ZM[to].dev.push(d);return d};
+ mv('Kantoor','0|Kantoor');{const k=mv('Spots kantoor',null);if(k){k.on=false;k.x2=1}}mv('Garage buiten','0|Garage');const g=mv('Spots garage achter',null);if(g){g.on=false;g.x2=1}}
 // op een https-webadres moet Homey ook via https: https://192-168-178-xx.homey.homeylocal.com
 const lvBase=()=>{const ip=LV.ip.replace(/^https?:\/\//,'').replace(/\/$/,'');return location.protocol==='https:'&&/^\d+\.\d+\.\d+\.\d+$/.test(ip)?'https://'+ip.replace(/\./g,'-')+'.homey.homeylocal.com':'http://'+ip};
 const lvH=()=>({'Authorization':'Bearer '+LV.key,'Content-Type':'application/json'});
@@ -1438,7 +1442,7 @@ async function lvPoll(){clearTimeout(LV.t);if(!LV.ip||!LV.key){lvStatus();return
   try{const r=await fetch(lvBase()+'/api/manager/devices/device/',{headers:lvH(),cache:'no-store'});
     if(r.status===401||r.status===403)throw new Error('sleutel geweigerd');if(!r.ok)throw new Error('fout '+r.status);
     LV.all=Object.values(await r.json());LV.by=new Map(LV.all.map(h=>[h.name.toLowerCase().trim(),h]));let ch=false;const wasOk=LV.ok;LV.ok=true;
-    ALL().forEach(d=>{const h=hdev(HM[d.n0]||d.n0);if(!h){d.hid=null;return}d.hid=h.id;const v=k=>cv_(h,k);
+    ALL().forEach(d=>{if(d.x2)return;const h=hdev(HM[d.n0]||d.n0);if(!h){d.hid=null;return}d.hid=h.id;const v=k=>cv_(h,k);
       if(d.t==='light'){if(d.busy&&Date.now()<d.busy)return;const on=!!v('onoff'),dm=v('dim');d.hasDim=dm!==undefined;
         if(on!==!!d.on||(dm!==undefined&&Math.abs((d.dim??1)-dm)>.01)){d.on=on;if(dm!==undefined)d.dim=dm;ch=true}d.sOn=!!d.on;d.sDim=d.dim}
       else if(d.t==='door'){const o=v('alarm_contact');if(o!==undefined){const s=o?'Open':'Dicht';if(s!==d.v){d.v=s;ch=true;if(!lvFirst&&o)toast('🪟 '+d.n+' is open')}}}
@@ -1475,6 +1479,54 @@ if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceW
  const addBack=()=>{const h=sIn.querySelector('.shh');if(h&&!h.querySelector('.sback')){const b=document.createElement('button');b.className='sback';b.textContent='‹ Terug';b.onclick=e=>{e.stopPropagation();closeRoom()};h.appendChild(b)}};
  new MutationObserver(addBack).observe(sIn,{childList:true});addBack()}
 
+// ===================== REALISTISCHE TEXTURES (hoge resolutie, zelfde patroon/maat als de oude) =====================
+// De oude canvas-textures krijgen een nieuw plaatje; repeat/UV blijven gelijk, dus het gebakken licht past nog precies.
+const TX2=(()=>{
+  const SZ=512,cache=new Map();
+  let sd=987654;const r2=()=>{sd=sd+0x6D2B79F5|0;let t=Math.imul(sd^sd>>>15,1|sd);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  // tegelbare value-noise
+  const mkN=P=>{const g=new Float32Array(P*P);for(let i=0;i<g.length;i++)g[i]=r2();
+    return (x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),
+      a=g[((yi%P+P)%P)*P+((xi%P+P)%P)],b=g[((yi%P+P)%P)*P+(((xi+1)%P+P)%P)],c=g[(((yi+1)%P+P)%P)*P+((xi%P+P)%P)],d=g[(((yi+1)%P+P)%P)*P+(((xi+1)%P+P)%P)];
+      return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}};
+  const N8=mkN(8),N16=mkN(16),N32=mkN(32),N64=mkN(64),N128=mkN(128);
+  const fbm=(x,y)=>(N8(x*8/SZ,y*8/SZ)*.5+N16(x*16/SZ,y*16/SZ)*.25+N32(x*32/SZ,y*32/SZ)*.15+N64(x*64/SZ,y*64/SZ)*.1);
+  const hsl=(h,s,l)=>{const c=new T.Color();c.setHSL(h/360,s,l);return [c.r*255,c.g*255,c.b*255]};
+  const canvas=paint=>{const c=document.createElement('canvas');c.width=c.height=SZ;const g=c.getContext('2d'),im=g.createImageData(SZ,SZ),d=im.data;
+    for(let y=0;y<SZ;y++)for(let x=0;x<SZ;x++){const p=paint(x,y),i=(y*SZ+x)*4;d[i]=Math.max(0,Math.min(255,p[0]));d[i+1]=Math.max(0,Math.min(255,p[1]));d[i+2]=Math.max(0,Math.min(255,p[2]));d[i+3]=255}
+    g.putImageData(im,0,0);return c};
+  const cellRand=(n)=>{const a=[];for(let i=0;i<n;i++)a.push(r2());return a};
+  const K={
+    // halfsteens verband, 16 lagen x 8 stenen (zoals het oude patroon), rood-bruine baksteen met grijze voegen
+    brick(){const R=cellRand(16*8*3);return canvas((x,y)=>{const row=y>>5,off=row%2?32:0,xx=((x-off)%SZ+SZ)%SZ,col=xx>>6,lx=xx&63,ly=y&31,k=(row*8+col)*3;
+      const n=fbm(x,y),sp=N128(x*.9,y*.9);
+      if(lx<3||ly<4||ly>28){const m=150+n*40-(ly>=1&&ly<4?28:0);return [m+8,m+3,m-6]}
+      const dark=R[k+2]<.12;let [r,g,b]=hsl(6+R[k]*12,.26+R[k+1]*.16,dark?.17:.23+R[k+1]*.12);
+      const e=Math.min(lx-3,60-lx,ly-4,28-ly),edge=e<2?.84:1,f=edge*(.82+n*.36)*(sp>.86?.8:1)*(sp<.07?1.15:1);return [r*f,g*f,b*f]})},
+    // betonnen dakpannen (antraciet), 4 kolommen x 4 rijen met golf en overlap-schaduw
+    roof(){const R=cellRand(16);return canvas((x,y)=>{const col=x>>7,row=y>>7,u=(x&127)/128,v=(y&127)/128,k=row*4+col,n=fbm(x,y);
+      const wave=.8+.22*Math.sin(u*Math.PI*2-1.2),sh=v>.9?.55+(1-v)*4:v<.05?1.12:1;const l=(.17+R[k]*.04)*wave*sh*(.85+n*.3);const [r,g,b]=hsl(205,.06,l);return [r,g,b]})},
+    // horizontale planken met houtnerf
+    planks(o){const R=cellRand(8);return canvas((x,y)=>{const row=y>>6,ly=y&63,n=N16(x*16/SZ*.25,y*16/SZ*4),gr=N64(x*64/SZ*.15,y*64/SZ*3);
+      if(ly<3)return hsl(o.h,o.s,o.l*.55);const [r,g,b]=hsl(o.h,o.s,o.l*(1+(R[row]-.5)*o.v)*(.86+n*.18+gr*.12));return [r,g,b]})},
+    // verticale planken (schutting)
+    boards(o){const R=cellRand(8);return canvas((x,y)=>{const col=x>>6,lx=x&63,n=N16(x*16/SZ*4,y*16/SZ*.25),gr=N64(x*64/SZ*3,y*64/SZ*.15);
+      if(lx<3)return hsl(o.h,o.s,o.l*.55);const [r,g,b]=hsl(o.h,o.s,o.l*(1+(R[col]-.5)*o.v)*(.86+n*.18+gr*.12));return [r,g,b]})},
+    // gras: grof + fijn, met sprietjes
+    grass(){return canvas((x,y)=>{const n=fbm(x,y),f=N128(x*.5,y*.5),b=N128(x*1.7+3,y*.35);const l=.27+n*.12+(b>.7?.06:0)-(f<.2?.05:0);return hsl(82+n*16,.24+f*.08,l+.03)})},
+    // klinkers in halfsteens verband (16 x 8), afgeschuinde randen en zandvoeg
+    pay(hex){const base=new T.Color(hex),R=cellRand(16*8);return canvas((x,y)=>{const row=y>>5,off=row%2?32:0,xx=((x-off)%SZ+SZ)%SZ,col=xx>>6,lx=xx&63,ly=y&31,n=fbm(x,y);
+      if(lx<3||ly<3){const m=118+n*30;return [m+12,m+6,m-4]}
+      let f=(.82+R[row*8+col]*.32)*(.86+n*.28);if(lx<6||ly<6)f*=1.12;if(lx>59||ly>28)f*=.78;return [base.r*255*f,base.g*255*f,base.b*255*f]})}};
+  const make=(kind,p)=>{const key=kind+'|'+(typeof p==='object'?JSON.stringify(p):p);if(cache.has(key))return cache.get(key);
+    let c;switch(kind){case 'brick':c=K.brick();break;case 'roof':c=K.roof();break;case 'grass':c=K.grass();break;case 'pay':c=K.pay(p);break;
+      case 'wood':c=K.planks({h:35,s:.14,l:.6,v:.18});break;case 'clad':c=K.planks({h:35,s:.05,l:.72,v:.12});break;
+      case 'deck':c=K.planks({h:14,s:.45,l:.2,v:.3});break;case 'fence':c=K.boards({h:35,s:.06,l:.7,v:.12});break}
+    cache.set(key,c);return c};
+  return {apply(){const done=new Set();let n=0;S.traverse(o=>{const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{const t=m&&m.map;
+      if(!t||done.has(t)||!t.userData||!t.userData.kind)return;done.add(t);const c=make(t.userData.kind,t.userData.p);if(c){t.image=c;t.anisotropy=8;t.needsUpdate=true;n++}})});return n}};
+})();
+TX2.apply();
 // ===================== GEBAKKEN LICHT (Blender/Cycles) =====================
 // Elk onderdeel heeft een vast nummer (bid). huis-bake.glb bevat per nummer de vorm met een 2e UV-set,
 // LM_<groep>.jpg is het gebakken licht. Gebakken onderdelen krijgen een licht materiaal: textuur × gebakken licht.
