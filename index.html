@@ -1585,9 +1585,9 @@ const SS=document.createElement('div');SS.id='xass';SS.hidden=true;
 SS.innerHTML='<div class="nofoto"></div><div class="ph"></div><div class="ph"></div><div class="sh"></div><div class="al"></div><div class="clk"><b></b><span></span></div><div class="ag"></div><div class="dim"></div>';
 document.body.appendChild(SS);const PH=[...SS.querySelectorAll('.ph')];let phA=0,phT=null;
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-function xaUrgent(){const o=[];D.forEach(d=>{if(d.t==='door'&&d.v==='Open')o.push(['w',(/deur|pui/i.test(d.n||d.n0)?'🚪 ':'🪟 ')+(d.n||d.n0)+' open'])});
+let xaUrgent=function(){const o=[];D.forEach(d=>{if(d.t==='door'&&d.v==='Open')o.push(['w',(/deur|pui/i.test(d.n||d.n0)?'🚪 ':'🪟 ')+(d.n||d.n0)+' open'])});
   (LV.all||[]).forEach(h=>{const c=h.capabilitiesObj||{},b=c.measure_battery&&c.measure_battery.value;if(typeof b==='number'&&b<=10)o.push(['','🔋 '+h.name+' '+b+'%']);
-    if(c.alarm_water&&c.alarm_water.value)o.push(['','💧 Lekkage: '+h.name]);if(c.alarm_smoke&&c.alarm_smoke.value)o.push(['','🔥 Rook: '+h.name])});return o}
+    if(c.alarm_water&&c.alarm_water.value)o.push(['','💧 Lekkage: '+h.name]);if(c.alarm_smoke&&c.alarm_smoke.value)o.push(['','🔥 Rook: '+h.name])});return o};
 function xaSS(){if(!XA.on)return;const n=new Date(),w=XA.wx;SS.querySelector('.clk b').textContent=hm(n);
   SS.querySelector('.clk span').textContent=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][n.getDay()]+' '+n.getDate()+' '+MND[n.getMonth()]+(w?'  ·  '+w.i[0]+' '+w.t+'° '+w.i[1]+' · '+w.lo+'°/'+w.hi+'°':'');
   const up=XA.ev.filter(e=>e.e>Date.now()).slice(0,3);SS.querySelector('.ag').innerHTML=up.length?'<small>Komt eraan</small>'+up.map(e=>xaEsc(dagNaam(e.s)+' '+evTxt(e))).join('<br>'):'';
@@ -1604,4 +1604,27 @@ function xaStop(){XA.on=false;clearTimeout(phT);SS.classList.remove('in');setTim
 ['pointerdown','keydown','wheel'].forEach(t=>addEventListener(t,e=>{XA.last=Date.now();if(XA.on){e.stopPropagation();e.preventDefault();xaStop()}},{capture:true,passive:false}));
 setInterval(()=>{if(!XA.on&&Date.now()-XA.last>XA.idleMin*60e3)xaStart();xaSS()},10000);
 xaWeer();xaAgenda();xaTop();
+// ===================== AFVALKALENDER (Homey-app Trashchecker) =====================
+XA.afval={today:[],tomorrow:[]};
+const AFV={GFT:'GFT',PMD:'PMD',PAPIER:'Papier',REST:'Rest',PLASTIC:'Plastic',GLAS:'Glas',TEXTIEL:'Textiel',GROF:'Grof afval',SNOEI:'Snoeiafval',KCA:'Chemisch afval',KERSTBOOM:'Kerstboom'};
+async function afvCond(when,type){const body=JSON.stringify({args:{when,trash_type:type}}),h={method:'POST',headers:lvH(),body};
+  const id='homey:app:com.trashchecker:days_to_collect';
+  for(const u of ['/api/manager/flow/flowcardcondition/'+encodeURIComponent(id)+'/run','/api/manager/flow/flowcardcondition/homey:app:com.trashchecker/days_to_collect/run']){
+    try{const r=await fetch(lvBase()+u,h);if(!r.ok)continue;const j=await r.json();return j===true||(j&&j.result===true)}catch(e){}}
+  return null}
+async function xaAfval(){if(LV.ok){const o={today:[],tomorrow:[]};
+  for(const w of ['today','tomorrow']){const any=await afvCond(w,'ANY');if(any===null){XA.afval.err=1;break}
+    if(any)for(const t of Object.keys(AFV))if(await afvCond(w,t))o[w].push(AFV[t])}
+  if(!XA.afval.err){XA.afval=o;xaTopAfv();xaSS()}}
+  setTimeout(xaAfval,LV.ok?2*3600e3:60e3)}
+function afvTxt(){const h=new Date().getHours(),a=XA.afval,r=[];
+  if(a.today.length&&h<13)r.push('🗑️ Vandaag: '+a.today.join(' + '));
+  if(a.tomorrow.length)r.push(h>=16?'🗑️ Vanavond '+a.tomorrow.join(' + ')+' aan de straat':'🗑️ Morgen: '+a.tomorrow.join(' + '));return r}
+function xaTopAfv(){let c=document.getElementById('xaafv');const t=afvTxt();
+  if(!c){c=document.createElement('span');c.id='xaafv';c.className='w';document.getElementById('xatop').appendChild(c)}
+  c.textContent=t.join(' · ');c.style.display=t.length?'':'none';if(t.length&&new Date().getHours()>=16)c.style.background='#e8a33b'}
+// afval ook in de rode balk van de fotoshow
+{const _u=xaUrgent;xaUrgent=function(){return _u().concat(afvTxt().map(t=>['w',t]))}}
+setTimeout(xaAfval,4000);setInterval(xaTopAfv,10*60e3);
+
 </script></body></html>
