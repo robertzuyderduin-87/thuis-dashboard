@@ -1545,16 +1545,16 @@ const evTxt=e=>(e.hd?'Hele dag':hm(e.s))+' · '+e.t;
 #xaag .e{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eef1f0}#xaag .e b{min-width:72px;font-variant-numeric:tabular-nums}#xaag .e i{display:inline-block;width:8px;height:8px;border-radius:9px;margin-right:6px}
 #xaag .x{margin-top:12px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}
 #xass{position:fixed;inset:0;z-index:95;background:#0b1018;overflow:hidden;opacity:0;transition:opacity 1.2s;color:#fff;font-family:system-ui,sans-serif}#xass[hidden]{display:none}#xass.in{opacity:1}
-#xass .ph{position:absolute;inset:-4%;background:center/cover no-repeat;opacity:0;transition:opacity 2s}#xass .ph.on{opacity:1;animation:xakb 16s ease-in-out forwards}
+#xass .ph{position:absolute;inset:-4%;background:center/cover no-repeat;opacity:0;transition:opacity 2s}#xass .ph.on{opacity:1}#xass .ph.on,#xass .ph.out{animation:xakb 16s linear forwards}
 @keyframes xakb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.09) translate(-1.5%,-1%)}}
 #xass .sh{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,0) 45%),linear-gradient(to bottom,rgba(0,0,0,.35),rgba(0,0,0,0) 25%)}
 #xass .nofoto{position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,#2c5d4c,#0b1018 70%);animation:xagr 30s ease-in-out infinite alternate}@keyframes xagr{to{filter:hue-rotate(40deg)}}
-#xass .clk{position:absolute;left:4vw;bottom:5vh}#xass .clk b{display:block;font:300 clamp(64px,13vw,160px)/1 system-ui,sans-serif;letter-spacing:-.02em;text-shadow:0 2px 20px rgba(0,0,0,.4)}
+#xass .clk{position:absolute;left:4vw;bottom:calc(5vh + var(--alh,0px));transition:bottom .6s}#xass .clk b{display:block;font:300 clamp(64px,13vw,160px)/1 system-ui,sans-serif;letter-spacing:-.02em;text-shadow:0 2px 20px rgba(0,0,0,.4)}
 #xass .clk span{font-size:clamp(16px,2.4vw,26px);opacity:.92;text-shadow:0 1px 8px rgba(0,0,0,.5)}
-#xass .ag{position:absolute;right:4vw;bottom:5vh;max-width:40vw;text-align:right;font-size:clamp(14px,1.9vw,22px);line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.6)}#xass .ag small{display:block;opacity:.75;font-size:.75em;text-transform:uppercase;letter-spacing:.08em}
-#xass .al{position:absolute;left:50%;top:3vh;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:92vw}
-#xass .al span{background:rgba(208,70,58,.92);border-radius:99px;padding:8px 16px;font-weight:600;font-size:clamp(13px,1.7vw,18px)}#xass .al span.w{background:rgba(232,163,59,.92);color:#1c1408}
-#xass .dim{position:absolute;inset:0;background:#000;opacity:0;transition:opacity 2s;pointer-events:none}`;document.head.appendChild(st)}
+#xass .ag{position:absolute;right:4vw;bottom:calc(5vh + var(--alh,0px));transition:bottom .6s;max-width:40vw;text-align:right;font-size:clamp(14px,1.9vw,22px);line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.6)}#xass .ag small{display:block;opacity:.75;font-size:.75em;text-transform:uppercase;letter-spacing:.08em}
+#xass .al{z-index:3;position:absolute;left:0;right:0;bottom:0;display:flex;gap:28px;align-items:center;padding:14px 4vw;background:rgba(190,40,32,.93);font-weight:600;font-size:clamp(15px,1.9vw,21px);overflow:hidden;white-space:nowrap}#xass .al:empty{display:none}
+#xass .al span+span::before{content:'•';margin-right:28px;opacity:.6}
+#xass .dim{z-index:2;position:absolute;inset:0;background:#000;opacity:0;transition:opacity 2s;pointer-events:none}`;document.head.appendChild(st)}
 // ---- bovenbalk: weer + eerstvolgende afspraak ----
 const xaBar=document.createElement('div');xaBar.id='xatop';xaBar.innerHTML='<span class="w" id="xaw">…</span><button id="xanext">📅 Agenda</button>';
 (document.querySelector('.demo')||document.body).after(xaBar);
@@ -1585,19 +1585,19 @@ const SS=document.createElement('div');SS.id='xass';SS.hidden=true;
 SS.innerHTML='<div class="nofoto"></div><div class="ph"></div><div class="ph"></div><div class="sh"></div><div class="al"></div><div class="clk"><b></b><span></span></div><div class="ag"></div><div class="dim"></div>';
 document.body.appendChild(SS);const PH=[...SS.querySelectorAll('.ph')];let phA=0,phT=null;
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-function xaUrgent(){const o=[];D.forEach(d=>{if(d.t==='door'&&d.v==='Open')o.push(['w','🪟 '+(d.n||d.n0)+' open'])});
+function xaUrgent(){const o=[];D.forEach(d=>{if(d.t==='door'&&d.v==='Open')o.push(['w',(/deur|pui/i.test(d.n||d.n0)?'🚪 ':'🪟 ')+(d.n||d.n0)+' open'])});
   (LV.all||[]).forEach(h=>{const c=h.capabilitiesObj||{},b=c.measure_battery&&c.measure_battery.value;if(typeof b==='number'&&b<=10)o.push(['','🔋 '+h.name+' '+b+'%']);
     if(c.alarm_water&&c.alarm_water.value)o.push(['','💧 Lekkage: '+h.name]);if(c.alarm_smoke&&c.alarm_smoke.value)o.push(['','🔥 Rook: '+h.name])});return o}
 function xaSS(){if(!XA.on)return;const n=new Date(),w=XA.wx;SS.querySelector('.clk b').textContent=hm(n);
   SS.querySelector('.clk span').textContent=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][n.getDay()]+' '+n.getDate()+' '+MND[n.getMonth()]+(w?'  ·  '+w.i[0]+' '+w.t+'° '+w.i[1]+' · '+w.lo+'°/'+w.hi+'°':'');
   const up=XA.ev.filter(e=>e.e>Date.now()).slice(0,3);SS.querySelector('.ag').innerHTML=up.length?'<small>Komt eraan</small>'+up.map(e=>xaEsc(dagNaam(e.s)+' '+evTxt(e))).join('<br>'):'';
-  SS.querySelector('.al').innerHTML=xaUrgent().map(a=>'<span class="'+a[0]+'">'+xaEsc(a[1])+'</span>').join('');
+  const ua=xaUrgent(),al=SS.querySelector('.al');al.innerHTML=ua.map(a=>'<span>'+xaEsc(a[1])+'</span>').join('');SS.style.setProperty('--alh',ua.length?(al.offsetHeight||56)+'px':'0px');
   const h=n.getHours();SS.querySelector('.dim').style.opacity=(h>=23||h<6)?.55:0}
 async function xaFoto(){clearTimeout(phT);if(!XA.on)return;
   try{if(!XA.ids.length&&XA.url&&XA.key){const j=await (await fetch(gas('a=fotos'))).json();XA.ids=shuffle(j.ids||[]);XA.idx=0}
     if(XA.ids.length){const id=XA.ids[XA.idx++%XA.ids.length];if(XA.idx>=XA.ids.length){XA.idx=0;shuffle(XA.ids)}
       const j=await (await fetch(gas('a=foto&w='+Math.min(2000,Math.round(innerWidth*devicePixelRatio))+'&id='+encodeURIComponent(id)))).json();
-      if(j.img&&XA.on){const im=new Image();im.onload=()=>{const nx=PH[1-phA];nx.style.backgroundImage='url('+j.img+')';nx.classList.remove('on');void nx.offsetWidth;nx.classList.add('on');PH[phA].classList.remove('on');phA=1-phA};im.src=j.img}}}
+      if(j.img&&XA.on){const im=new Image();im.onload=()=>{const nx=PH[1-phA];nx.style.backgroundImage='url('+j.img+')';nx.className='ph';void nx.offsetWidth;nx.className='ph on';PH[phA].className='ph out';phA=1-phA};im.src=j.img}}}
   catch(e){}phT=setTimeout(xaFoto,12000)}
 function xaStart(){if(XA.on)return;XA.on=true;SS.hidden=false;requestAnimationFrame(()=>SS.classList.add('in'));xaSS();xaFoto()}
 function xaStop(){XA.on=false;clearTimeout(phT);SS.classList.remove('in');setTimeout(()=>{if(!XA.on)SS.hidden=true},1200);XA.last=Date.now()}
