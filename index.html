@@ -1706,19 +1706,20 @@ async function spApi(path,opt={},again){const t=await spTok();const r=await fetc
 const spNorm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 async function spDevice(room,dev){const j=await spApi('/me/player/devices');const L=(j&&j.devices)||[];
   const names=[room,(sonDev(dev)||{}).name].map(spNorm).filter(Boolean);let saved='';try{saved=localStorage.getItem('sp_dev_'+room)||''}catch(e){}
-  const hit=L.find(d=>d.name===saved)||L.find(d=>names.includes(spNorm(d.name)))||L.find(d=>names.some(n=>spNorm(d.name).includes(n)||n.includes(spNorm(d.name))));
+  const spk=L.filter(d=>!/computer|smartphone|tablet/i.test(d.type||'')&&spNorm(d.name));
+  const hit=L.find(d=>d.name===saved)||spk.find(d=>names.includes(spNorm(d.name)))||spk.find(d=>names.some(n=>n.length>3&&spNorm(d.name).includes(n)));
   return {hit,all:L}}
 async function spPlay(room,dev,item,pickedId){
   let id=pickedId;
   if(!id){const {hit,all}=await spDevice(room,dev);
-    if(!hit){spPickDevice(room,dev,item,all);return}id=hit.id}
+    if(!hit||SP.forcePick){SP.forcePick=0;spPickDevice(room,dev,item,all);return}id=hit.id}
   const body=item.type==='track'?{uris:[item.uri]}:{context_uri:item.uri};
   try{await spApi('/me/player/play?device_id='+id,{method:'PUT',body:JSON.stringify(body)})}
   catch(e){if(e.status!==404)throw e;await spApi('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[id],play:false})});await new Promise(r=>setTimeout(r,800));
     await spApi('/me/player/play?device_id='+id,{method:'PUT',body:JSON.stringify(body)})}
   toast('🟢 '+item.name+' speelt in '+room);muP.hidden=true;setTimeout(lvPoll,2000)}
 function spPickDevice(room,dev,item,all){const el=document.getElementById('spv');if(!el)return;
-  el.innerHTML='<p><b>Welke speaker is '+xaEsc(room)+'?</b></p>'+(all.length?'<div class="spdl">'+all.map((d,i)=>'<button data-d="'+i+'">🔈 '+xaEsc(d.name)+'</button>').join('')+'</div><small>Je keuze wordt onthouden.</small>'
+  el.innerHTML='<p><b>Welke speaker is '+xaEsc(room)+'?</b></p>'+(all.length?'<div class="spdl">'+all.map((d,i)=>'<button data-d="'+i+'">'+(/computer/i.test(d.type)?'💻':/smartphone|tablet/i.test(d.type)?'📱':'🔈')+' '+xaEsc(d.name)+'</button>').join('')+'</div><small>Je keuze wordt onthouden.</small>'
     :'<p>Spotify ziet nu geen enkele speaker. Open één keer de Spotify-app op je telefoon, tik op 🔈 (apparaten) en kies daar deze Sonos. Daarna kent hij hem.</p>');
   el.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{const d=all[+b.dataset.d];try{localStorage.setItem('sp_dev_'+room,d.name)}catch(e){}
     try{await spPlay(room,dev,item,d.id)}catch(e){toast('⚠️ Spotify: '+e.message)}})}
@@ -1758,7 +1759,7 @@ async function spRender(el,room,dev){
   let shuf=false;try{shuf=localStorage.getItem('sp_shuf')==='1'}catch(e){}
   el.innerHTML='<div class="spbar"><input type="search" placeholder="🔎 Zoek artiest, nummer, album…" value="'+xaEsc(SP.q)+'" enterkeyhint="search"></div>'+
     '<div class="spsub">'+['Afspeellijsten','Recent','Albums'].map(s=>'<button data-s="'+s+'" aria-pressed="'+(!SP.q&&SP.sub===s)+'">'+s+'</button>').join('')+'</div>'+
-    '<div class="spctl"><button data-sh aria-pressed="'+shuf+'">🔀 Shuffle '+(shuf?'aan':'uit')+'</button></div><div id="spg"><p>Laden…</p></div>';
+    '<div class="spctl"><button data-sh aria-pressed="'+shuf+'">🔀 Shuffle '+(shuf?'aan':'uit')+'</button><button data-rs>🔈 Andere speaker kiezen</button></div><div id="spg"><p>Laden…</p></div>';
   const g=el.querySelector('#spg'),inp=el.querySelector('input');
   const show=async(fn)=>{g.innerHTML='<p>Laden…</p>';try{const L=await fn();
       g.innerHTML=L.length?'<div class="grid">'+L.map((x,i)=>'<button class="t" data-i="'+i+'">'+(x.img?'<img src="'+xaEsc(x.img)+'" alt="" loading="lazy">':'<span class="ph">'+(x.type==='collection'?'💚':x.type==='artist'?'🎤':'🟢')+'</span>')+xaEsc(x.name)+'<small>'+xaEsc(x.sub||'')+'</small></button>').join('')+'</div>':'<p>Niks gevonden.</p>';
@@ -1766,6 +1767,7 @@ async function spRender(el,room,dev){
         try{await spPlay(room,dev,x);if(x.type!=='track'){const {hit}=await spDevice(room,dev).catch(()=>({}));if(hit)spApi('/me/player/shuffle?state='+shuf+'&device_id='+hit.id,{method:'PUT'}).catch(()=>{})}}
         catch(e){b.style.opacity=1;toast('⚠️ Spotify: '+e.message)}})}
     catch(e){g.innerHTML='<p style="color:#a33">Spotify zegt: '+xaEsc(e.message)+'</p>'+(SP.rt?'':'<button class="spbig">🟢 Opnieuw koppelen</button>');const b=g.querySelector('.spbig');if(b)b.onclick=spLogin}};
+  el.querySelector('[data-rs]').onclick=async()=>{try{localStorage.removeItem('sp_dev_'+room)}catch(e){}SP.forcePick=1;toast('Tik nu iets aan, dan kies je de speaker')};
   el.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{SP.q='';SP.sub=b.dataset.s;spRender(el,room,dev)});
   el.querySelector('[data-sh]').onclick=e=>{shuf=!shuf;try{localStorage.setItem('sp_shuf',shuf?'1':'0')}catch(x){}e.target.setAttribute('aria-pressed',shuf);e.target.textContent='🔀 Shuffle '+(shuf?'aan':'uit')};
   let tm;inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{SP.q=inp.value.trim();el.querySelectorAll('[data-s]').forEach(b=>b.setAttribute('aria-pressed',!SP.q&&SP.sub===b.dataset.s));show(()=>SP.q?spSearch(SP.q):spList(SP.sub))},500)};
