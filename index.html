@@ -1601,7 +1601,7 @@ async function xaFoto(){clearTimeout(phT);if(!XA.on)return;
   catch(e){}phT=setTimeout(xaFoto,12000)}
 function xaStart(){if(XA.on)return;XA.on=true;SS.hidden=false;requestAnimationFrame(()=>SS.classList.add('in'));xaSS();xaFoto()}
 function xaStop(){XA.on=false;clearTimeout(phT);SS.classList.remove('in');setTimeout(()=>{if(!XA.on)SS.hidden=true},1200);XA.last=Date.now()}
-['pointerdown','keydown','wheel'].forEach(t=>addEventListener(t,e=>{XA.last=Date.now();if(XA.on){e.stopPropagation();e.preventDefault();xaStop()}},{capture:true,passive:false}));
+['pointerdown','keydown','wheel'].forEach(t=>addEventListener(t,e=>{XA.last=Date.now();if(XA.on&&!(e.target&&e.target.closest&&e.target.closest('#nubar'))){e.stopPropagation();e.preventDefault();xaStop()}},{capture:true,passive:false}));
 setInterval(()=>{if(!XA.on&&Date.now()-XA.last>XA.idleMin*60e3)xaStart();xaSS()},10000);
 xaWeer();xaAgenda();xaTop();
 // ===================== AFVALKALENDER (Homey-app Trashchecker) =====================
@@ -1643,7 +1643,7 @@ const soort=f=>{const d=(f.description||'').toLowerCase();return /spotify/.test(
 {const st=document.createElement('style');st.textContent=`
 .musec{margin-top:4px}.mu-now{display:flex;gap:10px;align-items:center;background:#f2f5f4;border-radius:14px;padding:10px}.mu-now .ti{flex:1;min-width:0}.mu-now .ti b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mu-now .ti small{color:#5a6964}
 .mu-btns{display:flex;gap:8px;margin:8px 0}.mu-btns button{flex:1;border:0;border-radius:12px;padding:12px;font-size:18px;background:#e3e9e6}.mu-btns .pick{flex:2;font-size:15px;font-weight:600;background:#1f7a5c;color:#fff}
-.mu-vol{display:flex;gap:8px;align-items:center}.mu-vol input{flex:1}
+.mu-vol{display:flex;gap:8px;align-items:center}.mu-vol input{flex:1}.mu-vol button{width:44px;height:44px;border:0;border-radius:12px;background:#e3e9e6;font-size:24px;font-weight:700;line-height:1}.mu-vol .mu-pc{min-width:44px;text-align:right;font-size:14px}
 #mupick{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}#mupick[hidden]{display:none}
 #mupick .bx{background:#fff;color:#14201c;border-radius:20px;padding:18px;width:min(720px,100%);max-height:88vh;overflow:auto;font:15px system-ui,sans-serif}
 #mupick h2{margin:0 0 8px;font-size:22px}#mupick .tabs{display:flex;gap:6px;margin:8px 0 12px;flex-wrap:wrap}#mupick .tabs button{border:0;border-radius:99px;padding:8px 14px;background:#e3e9e6;font-weight:600}#mupick .tabs button[aria-pressed=true]{background:#1f7a5c;color:#fff}
@@ -1667,10 +1667,11 @@ function muSection(room,dev){const pl=!!sonCap(dev,'speaker_playing'),tr=sonCap(
   const d=document.createElement('div');d.className='sec musec';
   d.innerHTML='<h3>Muziek</h3><div class="mu-now"><span style="font-size:26px">'+(pl?'🔊':'🔈')+'</span><div class="ti"><b>'+xaEsc(tr||'Niks aan het spelen')+'</b><small>'+xaEsc([ar,al].filter(Boolean).join(' · ')||(pl?'':'Kies hieronder wat je wilt horen'))+'</small></div></div>'+
     '<div class="mu-btns"><button data-m="prev" aria-label="Vorige">⏮</button><button data-m="pp" aria-label="Afspelen/pauze">'+(pl?'⏸':'▶')+'</button><button data-m="next" aria-label="Volgende">⏭</button><button class="pick" data-m="pick">Kies muziek</button></div>'+
-    (vol!=null?'<div class="mu-vol"><span>🔉</span><input type="range" min="0" max="100" value="'+Math.round(vol*100)+'" aria-label="Volume"><span>🔊</span></div>':'');
+    (vol!=null?'<div class="mu-vol"><button data-v="-1" aria-label="Zachter">−</button><input type="range" min="0" max="100" value="'+Math.round(vol*100)+'" aria-label="Volume"><button data-v="1" aria-label="Harder">+</button><b class="mu-pc">'+Math.round(vol*100)+'%</b></div>':'');
   d.querySelector('[data-m=pp]').onclick=()=>sonSet(dev,'speaker_playing',!pl);d.querySelector('[data-m=prev]').onclick=()=>sonSet(dev,'speaker_prev',true);
   d.querySelector('[data-m=next]').onclick=()=>sonSet(dev,'speaker_next',true);d.querySelector('[data-m=pick]').onclick=()=>muOpen(room,dev);
-  const v=d.querySelector('.mu-vol input');if(v){let tm;v.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>sonSet(dev,'volume_set',v.value/100),250)}}
+  const v=d.querySelector('.mu-vol input');if(v){let tm;const pc=d.querySelector('.mu-pc'),go=()=>{pc.textContent=v.value+'%';clearTimeout(tm);tm=setTimeout(()=>sonSet(dev,'volume_set',v.value/100),400)};v.oninput=go;
+    d.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{v.value=Math.max(0,Math.min(100,+v.value+2*(+b.dataset.v)));go()})}
   return d}
 {const _rr=rpRender;rpRender=function(){_rr.apply(this,arguments);try{if(!rpOpen||!LV.ok)return;const room=inside&&inside.n,dev=SONOS[room];if(!dev||!sonDev(dev))return;
   rp.querySelectorAll('.sec').forEach(s=>{if(/sonos|muziek/i.test((s.querySelector('h3')||{}).textContent||''))s.remove()});
@@ -1709,21 +1710,15 @@ async function spDevice(room,dev){const j=await spApi('/me/player/devices');cons
   const spk=L.filter(d=>!/computer|smartphone|tablet/i.test(d.type||'')&&spNorm(d.name));
   const hit=L.find(d=>d.name===saved)||spk.find(d=>names.includes(spNorm(d.name)))||spk.find(d=>names.some(n=>n.length>3&&spNorm(d.name).includes(n)));
   return {hit,all:L}}
-async function spPlay(room,dev,item,pickedId){
-  let id=pickedId;
-  if(!id){const {hit,all}=await spDevice(room,dev);
-    if(!hit||SP.forcePick){SP.forcePick=0;spPickDevice(room,dev,item,all);return}id=hit.id}
-  const body=item.type==='track'?{uris:[item.uri]}:{context_uri:item.uri};
-  try{await spApi('/me/player/play?device_id='+id,{method:'PUT',body:JSON.stringify(body)})}
-  catch(e){if(e.status!==404)throw e;await spApi('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[id],play:false})});await new Promise(r=>setTimeout(r,800));
-    await spApi('/me/player/play?device_id='+id,{method:'PUT',body:JSON.stringify(body)})}
-  toast('🟢 '+item.name+' speelt in '+room);muP.hidden=true;setTimeout(lvPoll,2000)}
-function spPickDevice(room,dev,item,all){const el=document.getElementById('spv');if(!el)return;
-  el.innerHTML='<p><b>Welke speaker is '+xaEsc(room)+'?</b></p>'+(all.length?'<div class="spdl">'+all.map((d,i)=>'<button data-d="'+i+'">'+(/computer/i.test(d.type)?'💻':/smartphone|tablet/i.test(d.type)?'📱':'🔈')+' '+xaEsc(d.name)+'</button>').join('')+'</div><small>Je keuze wordt onthouden.</small>'
-    :'<p>Spotify ziet nu geen enkele speaker. Open één keer de Spotify-app op je telefoon, tik op 🔈 (apparaten) en kies daar deze Sonos. Daarna kent hij hem.</p>');
-  el.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{const d=all[+b.dataset.d];try{localStorage.setItem('sp_dev_'+room,d.name)}catch(e){}
-    try{await spPlay(room,dev,item,d.id)}catch(e){toast('⚠️ Spotify: '+e.message)}})}
-
+// afspelen: Homey (HomeyScript) stuurt Spotify rechtstreeks naar de Sonos in huis
+const SONOS_ZONE={'Woonkamer':'Huiskamer','Keuken':'Keuken','Eetkamer':'Keuken','Gang':'Gang','Badkamer':'Badkamer','Slaapkamer achter':'Slaapkamer','Overloop zolder':'Zolder'};
+const SONOS_JS="// Speelt een Spotify-URI af op een Sonos (lokaal). Argument: JSON {z:zonenaam,u:spotify-uri,s:shuffle,v:volume?}\nconst A=JSON.parse(args[0]||'{}');\nconst tget=(u,ms,o={})=>Promise.race([fetch(u,o).then(async r=>({ok:r.ok,st:r.status,t:await r.text()})).catch(e=>({ok:false,st:0,t:e.message})),wait(ms).then(()=>({ok:false,st:0,t:'timeout'}))]);\nconst esc=s=>String(s).replace(/&/g,'&amp;').replace(/<\/g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');\nconst dec=s=>String(s||'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'\"').replace(/&amp;/g,'&');\nconst soap=(ip,path,svc,act,body)=>tget('http://'+ip+':1400'+path,8000,{method:'POST',headers:{'Content-Type':'text/xml; charset=\"utf-8\"',SOAPACTION:'\"urn:schemas-upnp-org:service:'+svc+':1#'+act+'\"'},body:'<?xml version=\"1.0\"?><s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:'+act+' xmlns:u=\"urn:schemas-upnp-org:service:'+svc+':1\">'+body+'<\/u:'+act+'><\/s:Body><\/s:Envelope>'});\nconst AV=(ip,act,body)=>soap(ip,'/MediaRenderer/AVTransport/Control','AVTransport',act,'<InstanceID>0<\/InstanceID>'+body);\nconst norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');\n// spelers zoeken (onthouden in global)\nasync function topo(ip){const r=await soap(ip,'/ZoneGroupTopology/Control','ZoneGroupTopology','GetZoneGroupState','');if(!r.ok)return null;const zg=dec(r.t);const P=[];\n  for(const g of zg.matchAll(/<ZoneGroup Coordinator=\"([^\"]*)\"[^>]*>([\\s\\S]*?)<\\/ZoneGroup>/g))for(const m of g[2].matchAll(/<ZoneGroupMember ([^>]*)>/g)){const a=k=>(m[1].match(new RegExp(k+'=\"([^\"]*)\"'))||[])[1];\n    if(a('Invisible')==='1')continue;P.push({z:a('ZoneName'),ip:(a('Location')||'').replace(/^http:\\/\\/|:1400.*$/g,''),id:a('UUID'),co:g[1]})}return P}\nlet P=null;const known=global.get('sonos_ips')||[];\nfor(const ip of known){P=await topo(ip);if(P&&P.length)break}\nif(!P||!P.length){const ips=[...Array(254)].map((_,i)=>'192.168.178.'+(i+1));\n  for(let i=0;i<ips.length&&!(P&&P.length);i+=64){const res=await Promise.all(ips.slice(i,i+64).map(async ip=>{const t=await tget('http://'+ip+':1400/xml/device_description.xml',2000);return t.ok&&/sonos/i.test(t.t)?ip:null}));\n    const hit=res.find(Boolean);if(hit)P=await topo(hit)}}\nif(!P||!P.length)throw new Error('Geen Sonos gevonden');\nglobal.set('sonos_ips',P.map(p=>p.ip));\nif(A.list)return JSON.stringify(P.map(p=>p.z));\nconst sp=P.find(p=>norm(p.z)===norm(A.z))||P.find(p=>norm(p.z).includes(norm(A.z))||norm(A.z).includes(norm(p.z)));\nif(!sp)throw new Error('Zone \"'+A.z+'\" niet gevonden. Wel: '+P.map(p=>p.z).join(', '));\nconst co=P.find(p=>p.id===sp.co)||sp;\n// Spotify-URI omzetten naar Sonos-formaat\nconst u=String(A.u||''),kind=(u.match(/^spotify:(?:user:[^:]+:)?(track|album|playlist|artist|collection|show|episode)/)||[])[1];if(!kind)throw new Error('Onbekende URI '+u);\nconst enc=encodeURIComponent(u);\nconst M={album:['x-rincon-cpcontainer:1004206c','1004206c','object.container.album.musicAlbum'],playlist:['x-rincon-cpcontainer:1006206c','1006206c','object.container.playlistContainer'],\n  collection:['x-rincon-cpcontainer:1006206c','1006206c','object.container.playlistContainer'],artist:['x-rincon-cpcontainer:100e206c','100e206c','object.container.playlistContainer'],\n  track:['','00032020','object.item.audioItem.musicTrack'],show:['x-rincon-cpcontainer:1006206c','1006206c','object.container.playlistContainer'],episode:['','00032020','object.item.audioItem.musicTrack']}[kind];\nconst svcs=global.get('sonos_spsvc')?[global.get('sonos_spsvc')]:[2311,3079];let last='';\nawait AV(co.ip,'Stop','');\nfor(const sv of svcs){\n  const sid=sv===2311?9:12,uri=M[0]?M[0]+enc:'x-sonos-spotify:'+enc+'?sid='+sid+'&flags=8224&sn=1';\n  const meta='<DIDL-Lite xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:upnp=\"urn:schemas-upnp-org:metadata-1-0/upnp/\" xmlns:r=\"urn:schemas-rinconnetworks-com:metadata-1-0/\" xmlns=\"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/\"><item id=\"'+M[1]+enc+'\" parentID=\"-1\" restricted=\"true\"><dc:title><\/dc:title><upnp:class>'+M[2]+'<\/upnp:class><desc id=\"cdudn\" nameSpace=\"urn:schemas-rinconnetworks-com:metadata-1-0/\">SA_RINCON'+sv+'_X_#Svc'+sv+'-0-Token<\/desc><\/item><\/DIDL-Lite>';\n  await AV(co.ip,'RemoveAllTracksFromQueue','');\n  const r=await AV(co.ip,'AddURIToQueue','<EnqueuedURI>'+esc(uri)+'<\/EnqueuedURI><EnqueuedURIMetaData>'+esc(meta)+'<\/EnqueuedURIMetaData><DesiredFirstTrackNumberEnqueued>0<\/DesiredFirstTrackNumberEnqueued><EnqueueAsNext>0<\/EnqueueAsNext>');\n  if(!r.ok){last=sv+': '+r.st+' '+((r.t.match(/<errorCode>(\\d+)/)||[])[1]||r.t.slice(0,80));continue}\n  const n=+((r.t.match(/<NumTracksAdded>(\\d+)/)||[])[1]||0);if(!n){last=sv+': 0 nummers';continue}\n  global.set('sonos_spsvc',sv);\n  await AV(co.ip,'SetAVTransportURI','<CurrentURI>x-rincon-queue:'+co.id+'#0<\/CurrentURI><CurrentURIMetaData><\/CurrentURIMetaData>');\n  await AV(co.ip,'SetPlayMode','<NewPlayMode>'+(A.s&&kind!=='track'?'SHUFFLE_NOREPEAT':'NORMAL')+'<\/NewPlayMode>');\n  if(A.v!=null)await soap(sp.ip,'/MediaRenderer/RenderingControl/Control','RenderingControl','SetVolume','<InstanceID>0<\/InstanceID><Channel>Master<\/Channel><DesiredVolume>'+A.v+'<\/DesiredVolume>');\n  const p=await AV(co.ip,'Play','<Speed>1<\/Speed>');\n  return 'OK '+co.z+' svc'+sv+' '+n+' nummers'+(p.ok?'':' play:'+p.st)}\nthrow new Error('Spotify via Sonos lukte niet ('+last+')');\n";
+async function spPlay(room,dev,item){let shuf=false;try{shuf=localStorage.getItem('sp_shuf')==='1'}catch(e){}
+  const arg=JSON.stringify({z:SONOS_ZONE[room]||room,u:item.uri,s:shuf});const C='homey:app:com.athom.homeyscript',K='runCodeWithArgReturnsString_v2';let msg='';
+  for(const t of [C+'/'+C+':'+K,C+'/'+K]){const r=await fetch(lvBase()+'/api/manager/flow/flowcardaction/'+t+'/run',{method:'POST',headers:lvH(),body:JSON.stringify({args:{code:SONOS_JS,argument:arg}})});
+    if(r.ok){toast('🟢 '+item.name+' speelt in '+room);muP.hidden=true;setTimeout(lvPoll,2500);return}
+    let m='';try{const j=await r.json();m=j.error_description||j.error||j.message||''}catch(e){}msg=r.status+(m?' '+m:'');if(r.status!==404)break}
+  throw new Error(msg)}
 // lijsten ophalen
 const spImg=x=>{const a=(x&&(x.images||(x.album&&x.album.images)))||[];return (a[a.length>1?1:0]||{}).url||''};
 async function spList(sub){if(SP.cache[sub])return SP.cache[sub];let L=[];
@@ -1759,15 +1754,14 @@ async function spRender(el,room,dev){
   let shuf=false;try{shuf=localStorage.getItem('sp_shuf')==='1'}catch(e){}
   el.innerHTML='<div class="spbar"><input type="search" placeholder="🔎 Zoek artiest, nummer, album…" value="'+xaEsc(SP.q)+'" enterkeyhint="search"></div>'+
     '<div class="spsub">'+['Afspeellijsten','Recent','Albums'].map(s=>'<button data-s="'+s+'" aria-pressed="'+(!SP.q&&SP.sub===s)+'">'+s+'</button>').join('')+'</div>'+
-    '<div class="spctl"><button data-sh aria-pressed="'+shuf+'">🔀 Shuffle '+(shuf?'aan':'uit')+'</button><button data-rs>🔈 Andere speaker kiezen</button></div><div id="spg"><p>Laden…</p></div>';
+    '<div class="spctl"><button data-sh aria-pressed="'+shuf+'">🔀 Shuffle '+(shuf?'aan':'uit')+'</button></div><div id="spg"><p>Laden…</p></div>';
   const g=el.querySelector('#spg'),inp=el.querySelector('input');
   const show=async(fn)=>{g.innerHTML='<p>Laden…</p>';try{const L=await fn();
       g.innerHTML=L.length?'<div class="grid">'+L.map((x,i)=>'<button class="t" data-i="'+i+'">'+(x.img?'<img src="'+xaEsc(x.img)+'" alt="" loading="lazy">':'<span class="ph">'+(x.type==='collection'?'💚':x.type==='artist'?'🎤':'🟢')+'</span>')+xaEsc(x.name)+'<small>'+xaEsc(x.sub||'')+'</small></button>').join('')+'</div>':'<p>Niks gevonden.</p>';
       g.querySelectorAll('[data-i]').forEach(b=>b.onclick=async()=>{const x=L[+b.dataset.i];b.style.opacity=.5;
-        try{await spPlay(room,dev,x);if(x.type!=='track'){const {hit}=await spDevice(room,dev).catch(()=>({}));if(hit)spApi('/me/player/shuffle?state='+shuf+'&device_id='+hit.id,{method:'PUT'}).catch(()=>{})}}
+        try{toast('⏳ Even geduld…');await spPlay(room,dev,x)}
         catch(e){b.style.opacity=1;toast('⚠️ Spotify: '+e.message)}})}
     catch(e){g.innerHTML='<p style="color:#a33">Spotify zegt: '+xaEsc(e.message)+'</p>'+(SP.rt?'':'<button class="spbig">🟢 Opnieuw koppelen</button>');const b=g.querySelector('.spbig');if(b)b.onclick=spLogin}};
-  el.querySelector('[data-rs]').onclick=async()=>{try{localStorage.removeItem('sp_dev_'+room)}catch(e){}SP.forcePick=1;toast('Tik nu iets aan, dan kies je de speaker')};
   el.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{SP.q='';SP.sub=b.dataset.s;spRender(el,room,dev)});
   el.querySelector('[data-sh]').onclick=e=>{shuf=!shuf;try{localStorage.setItem('sp_shuf',shuf?'1':'0')}catch(x){}e.target.setAttribute('aria-pressed',shuf);e.target.textContent='🔀 Shuffle '+(shuf?'aan':'uit')};
   let tm;inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{SP.q=inp.value.trim();el.querySelectorAll('[data-s]').forEach(b=>b.setAttribute('aria-pressed',!SP.q&&SP.sub===b.dataset.s));show(()=>SP.q?spSearch(SP.q):spList(SP.sub))},500)};
@@ -1782,4 +1776,100 @@ async function spRender(el,room,dev){
   const lp=document.getElementById('lvpill');lp&&lp.addEventListener('click',upd);upd();
   const take=()=>{const v=document.getElementById('spcid').value.trim();if(v!==SP.cid){SP.cid=v;SP.rt='';SP.at=''}spStore()};
   sv.addEventListener('click',take);document.getElementById('spgo').onclick=()=>{take();spLogin()}}}
+
+// ===================== HENK (Eufy X10 Pro Omni) =====================
+const HENK='ea53801d-bedf-4a34-8295-673734ea4408';
+const hkCap=k=>sonCap(HENK,k);
+const HK_ERR={'clean water tank empty':'Schoonwatertank is leeg','dirty water tank full':'Vuilwatertank is vol','dust bag full':'Stofzak is vol','wheel stuck':'Wiel zit vast','side brush stuck':'Zijborstel zit vast',
+  'main brush stuck':'Hoofdborstel zit vast','robot trapped':'Henk zit vast','cliff sensor error':'Valsensor vies of geblokkeerd','bumper stuck':'Bumper zit vast','low battery':'Batterij bijna leeg','mop missing':'Dweilpads missen'};
+const hkErr=()=>{const e=String(hkCap('measure_error')||'').trim();if(!e||/^(none|no.?error|ok|0|null)$/i.test(e))return '';return HK_ERR[e.toLowerCase()]||e};
+const HK_ST={charging:'🔌 Laadt op',docked:'🏠 In het station',cleaning:'🧹 Aan het zuigen',spot_cleaning:'🧹 Plekje zuigen',stopped:'⏹ Gestopt'};
+const HK_WS={cleaning:'🧹 Aan het zuigen',charging:'🔌 Laadt op',recharge:'🔋 Tussendoor opladen','go home':'🏠 Op weg naar huis',going_home:'🏠 Op weg naar huis',paused:'⏸ Gepauzeerd',pause:'⏸ Gepauzeerd',standby:'💤 Stand-by',sleeping:'💤 Slaapt',fault:'⚠️ Storing',error:'⚠️ Storing',washing:'🫧 Dweilpads wassen',drying:'💨 Dweilpads drogen',completed:'✅ Klaar'};
+const hkStatus=()=>{const w=String(hkCap('measure_work_status')||'').toLowerCase();return HK_WS[w]||HK_ST[hkCap('vacuumcleaner_state')]||(w?w:'Onbekend')};
+const hkPref=()=>{let p={};try{p=JSON.parse(localStorage.getItem('henk_pref')||'{}')}catch(e){}return Object.assign({type:'SWEEP_AND_MOP',water:'MEDIUM',ext:'NORMAL',speed:'standard'},p)};
+const hkSave=p=>{try{localStorage.setItem('henk_pref',JSON.stringify(p))}catch(e){}};
+async function hkDo(card,args={},msg){try{await sonRun(HENK,card,args);if(msg)toast(msg);setTimeout(lvPoll,1500);setTimeout(()=>{lvPoll();hkDraw()},5000)}catch(e){toast('⚠️ Henk reageert niet ('+e.message+')')}}
+async function hkStart(){const p=hkPref();toast('🤖 Henk gaat aan de slag…');
+  try{await sonRun(HENK,'action_clean_params',{action_clean_params_cleantype:p.type,action_clean_params_mopmode:p.water,action_clean_params_cleanextent:p.ext});
+    await sonRun(HENK,'action_measure_clean_speed',{action_measure_clean_speed_type:p.speed})}catch(e){console.warn('henk params',e)}
+  hkDo('clean',{},'🧹 Henk is vertrokken')}
+{const st=document.createElement('style');st.textContent=`
+#henk{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}#henk[hidden]{display:none}
+#henk .bx{background:#fff;color:#14201c;border-radius:20px;padding:18px;width:min(560px,100%);max-height:90vh;overflow:auto;font:15px system-ui,sans-serif}
+#henk h2{margin:0;font-size:22px}#henk .st{display:flex;gap:12px;align-items:center;background:#f2f5f4;border-radius:14px;padding:12px;margin:10px 0}#henk .st b{font-size:17px}
+#henk .bat{height:8px;border-radius:9px;background:#dfe6e3;overflow:hidden;margin-top:6px;width:160px}#henk .bat i{display:block;height:100%;background:#1f7a5c}
+#henk .er{background:#fff1ec;color:#b3361f;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-weight:600}
+#henk .go{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}#henk .go button{border:0;border-radius:14px;padding:14px 8px;font:600 15px system-ui,sans-serif;background:#e3e9e6;color:#14201c}#henk .go .big{background:#1f7a5c;color:#fff;font-size:17px}
+#henk h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#5a6964;margin:14px 0 6px}#henk .ch{display:flex;flex-wrap:wrap;gap:6px}
+#henk .ch button{border:1px solid #ccd5d1;background:#fff;border-radius:99px;padding:8px 13px;font:600 14px system-ui,sans-serif;color:#14201c}#henk .ch button[aria-pressed=true]{background:#1f7a5c;border-color:#1f7a5c;color:#fff}
+#henk .x{margin-top:14px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}
+#xahenk.err{background:#e8a33b!important}#xahenk.run{background:#cfe9dc!important}`;document.head.appendChild(st)}
+const hkP=document.createElement('div');hkP.id='henk';hkP.hidden=true;document.body.appendChild(hkP);hkP.onclick=e=>{if(e.target===hkP)hkP.hidden=true};
+function hkDraw(){if(hkP.hidden)return;const p=hkPref(),bat=hkCap('measure_battery'),err=hkErr(),stv=hkCap('vacuumcleaner_state'),busy=/clean/.test(stv||'')||/clean|go home|recharge/i.test(hkCap('measure_work_status')||'');
+  const ch=(key,opts)=>'<div class="ch">'+opts.map(([v,t])=>'<button data-k="'+key+'" data-v="'+v+'" aria-pressed="'+(p[key]===v)+'">'+t+'</button>').join('')+'</div>';
+  hkP.innerHTML='<div class="bx"><h2>🤖 Henk</h2><div class="st"><span style="font-size:34px">'+(busy?'🧹':'🏠')+'</span><div><b>'+xaEsc(hkStatus())+'</b>'+(bat!=null?'<div class="bat"><i style="width:'+bat+'%"></i></div><small>'+bat+'% batterij</small>':'')+'</div></div>'+
+    (err?'<div class="er">⚠️ '+xaEsc(err)+'</div>':'')+
+    '<div class="go">'+(busy?'<button class="big" data-a="pause">⏸ Pauze</button>':'<button class="big" data-a="start">▶ Start schoonmaak</button>')+'<button data-a="play">⏯ Hervat</button><button data-a="home">🏠 Naar huis</button></div>'+
+    '<div class="go" style="grid-template-columns:1fr;margin-top:8px"><button data-a="stop">⏹ Stop</button></div>'+
+    '<h3>Wat moet hij doen</h3>'+ch('type',[['SWEEP_AND_MOP','Zuigen + dweilen'],['SWEEP_ONLY','Alleen zuigen'],['MOP_ONLY','Alleen dweilen']])+
+    (p.type!=='SWEEP_ONLY'?'<h3>Water</h3>'+ch('water',[['LOW','Weinig'],['MEDIUM','Normaal'],['HIGH','Veel']]):'')+
+    '<h3>Hoe grondig</h3>'+ch('ext',[['QUICK','Snel'],['NORMAL','Normaal'],['NARROW','Grondig']])+
+    '<h3>Zuigkracht</h3>'+ch('speed',[['quiet','Stil'],['standard','Standaard'],['turbo','Turbo'],['max','Max']])+
+    '<p style="color:#5a6964;font-size:13px;margin:10px 0 0">Je keuzes worden onthouden en gebruikt bij ▶ Start.</p><button class="x">Sluiten</button></div>';
+  hkP.querySelector('.x').onclick=()=>hkP.hidden=true;
+  hkP.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{const q=hkPref();q[b.dataset.k]=b.dataset.v;hkSave(q);hkDraw();
+    if(busy&&b.dataset.k==='speed')hkDo('action_measure_clean_speed',{action_measure_clean_speed_type:q.speed},'Zuigkracht: '+b.textContent)});
+  const A={start:hkStart,pause:()=>hkDo('action_control_mode',{action_control_mode_type:'PAUSE'},'⏸ Henk pauzeert'),play:()=>hkDo('action_control_mode',{action_control_mode_type:'PLAY'},'⏯ Henk gaat weer verder'),
+    home:()=>hkDo('dock',{},'🏠 Henk gaat naar huis'),stop:()=>hkDo('stop',{},'⏹ Henk stopt')};
+  hkP.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>A[b.dataset.a]())}
+function hkOpen(){hkP.hidden=false;hkDraw()}
+function hkChip(){const top=document.getElementById('xatop');if(!top||!LV.ok||!sonDev(HENK))return;let c=document.getElementById('xahenk');
+  if(!c){c=document.createElement('button');c.id='xahenk';c.onclick=hkOpen;top.appendChild(c)}
+  const bat=hkCap('measure_battery'),err=hkErr(),s=hkStatus();c.className=err?'err':/zuigen|weg naar|opladen|wassen/.test(s)?'run':'';
+  c.textContent='🤖 Henk · '+(err?'⚠️ '+err:s.replace(/^\S+\s/,'')+(bat!=null?' '+bat+'%':''));hkDraw()}
+// bijwerken bij elke Homey-ronde
+{const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{hkChip()}catch(e){}return r}}
+setInterval(()=>{try{hkChip()}catch(e){}},15e3);setTimeout(()=>{try{hkChip()}catch(e){}},3000);
+// melding in de fotoshow als Henk hulp nodig heeft
+{const _u=xaUrgent;xaUrgent=function(){const o=_u(),e=LV.ok&&sonDev(HENK)?hkErr():'';return e?o.concat([['w','🤖 Henk: '+e]]):o}}
+// ook in het kamerpaneel van Kantoor (daar staat zijn station)
+{const _rr=rpRender;rpRender=function(){_rr.apply(this,arguments);try{if(!rpOpen||!LV.ok||!inside||inside.n!=='Kantoor'||!sonDev(HENK))return;
+  const d=document.createElement('div');d.className='sec';d.innerHTML='<h3>Henk</h3><button class="hkb" style="width:100%;border:0;border-radius:12px;padding:12px;background:#f2f5f4;text-align:left;font:600 15px system-ui,sans-serif">🤖 '+xaEsc(hkStatus())+(hkErr()?' · ⚠️ '+xaEsc(hkErr()):'')+'</button>';
+  d.querySelector('.hkb').onclick=hkOpen;const after=rp.querySelector('.rps');(after?after:rp.firstChild).after(d)}catch(e){console.warn(e)}}}
+
+// ===================== ONDERBALK: urgente meldingen + wat er speelt =====================
+{const st=document.createElement('style');st.textContent=`
+#nubar{position:fixed;left:0;right:0;bottom:0;height:42px;z-index:5;background:#0d0f10;color:#e8ecea;display:flex;align-items:center;gap:8px;padding:0 10px;
+  font:600 14px system-ui,sans-serif;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none}#nubar::-webkit-scrollbar{display:none}
+#nubar .al{color:#ff6b5c;padding:0 6px;flex:none}#nubar .al.w{color:#ffb547}
+#nubar .mu{display:flex;align-items:center;gap:6px;background:#1d2224;border-radius:99px;padding:3px 3px 3px 12px;flex:none;max-width:44vw}
+#nubar .mu .tx{overflow:hidden;text-overflow:ellipsis;cursor:pointer}#nubar .mu .tx small{color:#9fb0ac;font-weight:500;margin-left:6px}
+#nubar .mu.off{opacity:.6}#nubar .mu button{border:0;border-radius:99px;width:34px;height:34px;background:#2f3739;color:#fff;font-size:15px;flex:none}
+#nubar .ok{color:#7d8c88;font-weight:500;padding-left:4px}#nubar .sp{flex:1}
+.bot{bottom:50px!important}#rp{bottom:104px!important}#toast{bottom:118px!important}`;document.head.appendChild(st)}
+const nuBar=document.createElement('div');nuBar.id='nubar';document.body.appendChild(nuBar);
+const NU_LAST={};// laatste moment dat een speaker speelde
+const NU_ROOM={};Object.entries(SONOS).forEach(([r,id])=>{if(!NU_ROOM[id])NU_ROOM[id]=r==='Eetkamer'?'Keuken':r});
+const NU_NAME=r=>r==='Slaapkamer achter'?'Slaapkamer':r==='Overloop zolder'?'Zolder':r;
+function nuDraw(){
+  let al=[];try{al=(typeof xaUrgent==='function'?xaUrgent():[])||[]}catch(e){}
+  const now=Date.now(),mus=[];
+  if(LV.ok)Object.entries(NU_ROOM).forEach(([id,room])=>{if(!sonDev(id))return;const pl=!!sonCap(id,'speaker_playing');if(pl)NU_LAST[id]=now;
+    if(!pl&&!(NU_LAST[id]&&now-NU_LAST[id]<5*60e3))return;
+    let tr=sonCap(id,'speaker_track')||'',ar=sonCap(id,'speaker_artist')||'';if(/^(HDMI|TV|spdif)$/i.test(tr)){tr='TV-geluid';ar=''}
+    mus.push({id,room,pl,tr,ar})});
+  const k=JSON.stringify([al,mus.map(m=>[m.id,m.pl,m.tr,m.ar])]);if(nuBar._k===k)return;nuBar._k=k;
+  nuBar.innerHTML=al.map(([t,x])=>'<span class="al">'+xaEsc(x)+'</span>').join('')+
+    (al.length?'':'<span class="ok">✅ Alles oké</span>')+'<span class="sp"></span>'+
+    mus.map(m=>'<span class="mu'+(m.pl?'':' off')+'"><span class="tx" data-r="'+xaEsc(m.room)+'">'+(m.pl?'🔊 ':'⏸ ')+xaEsc(NU_NAME(m.room))+'<small>'+xaEsc([m.tr,m.ar].filter(Boolean).join(' – '))+'</small></span><button data-p="'+m.id+'" aria-label="'+(m.pl?'Pauze':'Afspelen')+'">'+(m.pl?'⏸':'▶')+'</button></span>').join('');
+  nuBar.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const id=b.dataset.p,pl=!!sonCap(id,'speaker_playing');if(!pl)NU_LAST[id]=Date.now();sonSet(id,'speaker_playing',!pl);
+    b.textContent=pl?'▶':'⏸'});
+  nuBar.querySelectorAll('[data-r]').forEach(s=>s.onclick=()=>{const r=ROOMS.find(x=>x.n===s.dataset.r);if(r&&typeof enter==='function')enter(r)})}
+{const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{nuDraw()}catch(e){}return r}}
+setInterval(()=>{try{nuDraw()}catch(e){}},5000);setTimeout(()=>{try{nuDraw()}catch(e){}},2500);
+
+// onderbalk ook tijdens de fotoshow: boven de foto's, meldingen alleen nog in de balk
+{const st=document.createElement('style');st.textContent='body.sson #nubar{z-index:96;background:rgba(0,0,0,.72)}body.sson #xass .al{display:none}';document.head.appendChild(st)}
+new MutationObserver(()=>document.body.classList.toggle('sson',!SS.hidden)).observe(SS,{attributes:true,attributeFilter:['hidden']});
+{const _s=xaSS;xaSS=function(){_s.apply(this,arguments);try{SS.style.setProperty('--alh','42px')}catch(e){}}}
 </script></body></html>
