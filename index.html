@@ -1443,7 +1443,7 @@ try{const was=localStorage.getItem('dash_exp');if(was){localStorage.removeItem('
 const TXF={brick:[1.333,.909],roof:[.25,.25],grass:[3,3],clad:[2,1.6],fence:[.889,1.111],deck:[.667,.667],pay:[.8,.8],oak:[.49,.49]};
 const TX2={apply(){const done=new Set();S.traverse(o=>{const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{const t=m&&m.map;
   if(!t||done.has(t)||!t.userData||!t.userData.kind)return;done.add(t);const u=t.userData,nm=u.kind+(u.kind==='pay'?'-'+String(u.p).replace('#','').toLowerCase():'')+'.jpg';
-  const im=new Image();im.onload=()=>{t.image=im;t.anisotropy=8;const f=TXF[u.kind];if(f&&!u.sc){t.repeat.x*=f[0];t.repeat.y*=f[1];u.sc=1}t.needsUpdate=true;if(typeof kick==='function')kick(1,10)};im.src='tex/'+nm+'?v=ph1'})})}};
+  const im=new Image();im.onload=()=>{t.image=im;t.anisotropy=8;const f=TXF[u.kind];if(f&&!u.sc){t.repeat.x*=f[0];t.repeat.y*=f[1];u.sc=1}t.needsUpdate=true;if(typeof kick==='function')kick(1,10)};im.onerror=()=>{if(!im._r){im._r=1;im.src=nm+'?v=ph1'}};im.src='tex/'+nm+'?v=ph1'})})}};
 TX2.apply();
 // ===================== GEBAKKEN LICHT (Blender/Cycles) =====================
 // Elk onderdeel heeft een vast nummer (bid). huis-bake.glb bevat per nummer de vorm met een 2e UV-set,
