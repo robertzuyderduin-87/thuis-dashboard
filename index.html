@@ -1734,7 +1734,7 @@ async function spList(sub){if(SP.cache[sub])return SP.cache[sub];let L=[];
     // namen van afspeellijsten bijzoeken (losse aanvraag per lijst, max 8)
     await Promise.all(L.filter(x=>x.lazy).slice(0,8).map(async x=>{try{const p=await spApi('/playlists/'+x.uri.split(':').pop()+'?fields=name,images');x.name=p.name;x.img=spImg(p)||x.img}catch(e){}}))}
   SP.cache[sub]=L;setTimeout(()=>{delete SP.cache[sub]},10*60e3);return L}
-async function spSearch(q){const j=await spApi('/search?'+new URLSearchParams({q,type:'artist,playlist,album,track',limit:'8',market:'from_token'}));const L=[];
+async function spSearch(q){const j=await spApi('/search?'+new URLSearchParams({q,type:'artist,playlist,album,track',limit:'8'}));const L=[];
   ((j.artists||{}).items||[]).filter(Boolean).slice(0,4).forEach(a=>L.push({type:'artist',name:a.name,uri:a.uri,img:spImg(a),sub:'Artiest'}));
   ((j.tracks||{}).items||[]).filter(Boolean).forEach(t=>L.push({type:'track',name:t.name,uri:t.uri,img:spImg(t),sub:'Nummer · '+(t.artists||[]).map(x=>x.name).join(', ')}));
   ((j.albums||{}).items||[]).filter(Boolean).forEach(a=>L.push({type:'album',name:a.name,uri:a.uri,img:spImg(a),sub:'Album · '+(a.artists||[]).map(x=>x.name).join(', ')}));
