@@ -1558,6 +1558,11 @@ if(typeof xray!=='undefined'&&typeof view==='function'){const _vw=view;view=func
 if(QB)bkLoad().then(n=>{if(!n){toast('⚠️ Gebakken licht niet gevonden, gewone weergave');if(typeof R!=='undefined'){R.shadowMap.enabled=true;S.traverse(o=>{if(o.material&&!Array.isArray(o.material))o.material.needsUpdate=true})}return}
   // gebakken: geen live schaduw nodig; zon zwakker, alleen voor planten en lampen
   sun.castShadow=false;bkGlows();bkSync();if(typeof kick==='function')kick(1,30);console.log('gebakken onderdelen:',n,'niet passend:',BKX.miss||0);if(BKX.miss>300)toast('🔥 Gebakken licht: '+n+' onderdelen ('+BKX.miss+' overgeslagen)')});
+
+// echt weer (Open-Meteo, Alkmaar) in de statusbalk
+{const WXC=c=>c===0?['☀️','zonnig']:c<=2?['🌤️','licht bewolkt']:c===3?['☁️','bewolkt']:c<=48?['🌫️','mist']:c<=57?['🌦️','motregen']:c<=67?['🌧️','regen']:c<=77?['🌨️','sneeuw']:c<=82?['🌧️','buien']:c<=86?['🌨️','sneeuwbuien']:['⛈️','onweer'];
+ const go=async()=>{try{const j=await (await fetch('https://api.open-meteo.com/v1/forecast?latitude=52.63&longitude=4.75&current=temperature_2m,weather_code&timezone=Europe%2FAmsterdam')).json(),c=j.current,i=WXC(c.weather_code),w=document.querySelector('.wx');
+   if(w){w.querySelector('b').textContent=i[0]+' '+Math.round(c.temperature_2m)+'°';w.querySelector('span').textContent='Alkmaar · '+i[1]}}catch(e){}setTimeout(go,15*60e3)};go()}
 </script>
 
 </html>

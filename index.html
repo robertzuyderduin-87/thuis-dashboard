@@ -1376,7 +1376,7 @@ async function lvPoll(){clearTimeout(LV.t);
   if(!LV.ip||!LV.key){lvStatus();return}
   try{const r=await fetch(lvBase()+'/api/manager/devices/device/',{headers:lvH(),cache:'no-store'});
     if(r.status===401||r.status===403)throw new Error('sleutel geweigerd ('+r.status+')');if(!r.ok)throw new Error('fout '+r.status);
-    const all=Object.values(await r.json()),by=new Map(all.map(h=>[h.name.toLowerCase().trim(),h])),byId=new Map(all.map(h=>[h.id,h]));let ch=false;
+    const all=Object.values(await r.json()),by=new Map(all.map(h=>[h.name.toLowerCase().trim(),h])),byId=new Map(all.map(h=>[h.id,h]));LV.all=all;let ch=false;
     D.concat(typeof XL!=='undefined'?XL:[]).forEach(d=>{const h=(HID[d.n0]&&byId.get(HID[d.n0]))||by.get((HM[d.n0]||d.n0).toLowerCase().trim());if(!h){d.hid=null;return}
       d.hid=h.id;if(d.n!==h.name){d.n=h.name;ch=true}const c=h.capabilitiesObj||{},v=k=>c[k]?c[k].value:undefined;
       if(d.t==='light'){if(d.busy&&Date.now()<d.busy)return;const on=!!v('onoff'),dm=v('dim');d.hasDim=dm!==undefined;
@@ -1516,4 +1516,92 @@ if(QB)bkLoad().then(n=>{if(!n){toast('⚠️ Gebakken licht niet gevonden, gewon
  buB.onclick=()=>{if(inside)leave();lvl=3;view();show(3)};
  back.onclick=()=>{if(inside)leave();lvl=3;view();show(null)};
  show(null)}
+
+// ===================== WEER + AGENDA + FOTO-SCHERMBEVEILIGING =====================
+const XA={url:'',key:'',ev:[],wx:null,ids:[],idx:0,idleMin:5,on:false,t:null,last:Date.now()};
+try{XA.url=localStorage.getItem('gas_url')||'';XA.key=localStorage.getItem('gas_key')||''}catch(e){}
+const xaEsc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// ---- weer (Open-Meteo, Alkmaar) ----
+const WXC=c=>c===0?['☀️','zonnig']:c<=2?['🌤️','licht bewolkt']:c===3?['☁️','bewolkt']:c<=48?['🌫️','mist']:c<=57?['🌦️','motregen']:c<=67?['🌧️','regen']:c<=77?['🌨️','sneeuw']:c<=82?['🌧️','buien']:c<=86?['🌨️','sneeuwbuien']:['⛈️','onweer'];
+async function xaWeer(){try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=52.63&longitude=4.75&current=temperature_2m,weather_code,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FAmsterdam&forecast_days=1');
+  const j=await r.json(),c=j.current;XA.wx={t:Math.round(c.temperature_2m),i:WXC(c.weather_code),r:c.precipitation,w:Math.round(c.wind_speed_10m),hi:Math.round(j.daily.temperature_2m_max[0]),lo:Math.round(j.daily.temperature_2m_min[0]),p:j.daily.precipitation_probability_max[0]};xaTop();xaSS()}catch(e){}
+  setTimeout(xaWeer,15*60e3)}
+// ---- agenda (eigen Google Apps Script) ----
+const gas=(q)=>XA.url+(XA.url.includes('?')?'&':'?')+'k='+encodeURIComponent(XA.key)+'&'+q;
+async function xaAgenda(){if(XA.url&&XA.key){try{const j=await (await fetch(gas('a=agenda'))).json();if(j.ev)XA.ev=j.ev;xaTop();xaSS();if(!xaAg.hidden)xaAgRender()}catch(e){}}
+  setTimeout(xaAgenda,10*60e3)}
+const DAG=['zo','ma','di','wo','do','vr','za'],MND=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+const hm=t=>{const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const dagNaam=t=>{const d=new Date(t),n=new Date(),a=new Date(n.getFullYear(),n.getMonth(),n.getDate()),b=new Date(d.getFullYear(),d.getMonth(),d.getDate()),df=Math.round((b-a)/864e5);
+  return df===0?'Vandaag':df===1?'Morgen':DAG[d.getDay()]+' '+d.getDate()+' '+MND[d.getMonth()]};
+const evTxt=e=>(e.hd?'Hele dag':hm(e.s))+' · '+e.t;
+// ---- stijl ----
+{const st=document.createElement('style');st.textContent=`
+#xatop{display:flex;align-items:center;gap:8px;margin-top:6px;font:600 14px system-ui,sans-serif;color:#14201c;pointer-events:auto}
+#xatop .w{background:rgba(255,255,255,.75);border-radius:99px;padding:6px 12px}#xatop button{border:0;border-radius:99px;padding:6px 12px;background:rgba(255,255,255,.75);font:600 14px system-ui,sans-serif;color:#14201c;max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#xaag{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.4);display:grid;place-items:center;padding:16px}#xaag[hidden]{display:none}
+#xaag .bx{background:#fff;color:#14201c;border-radius:20px;padding:20px;width:min(560px,100%);max-height:86vh;overflow:auto;font:15px system-ui,sans-serif}
+#xaag h2{margin:0 0 10px;font-size:22px}#xaag h3{margin:14px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#5a6964}
+#xaag .e{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eef1f0}#xaag .e b{min-width:72px;font-variant-numeric:tabular-nums}#xaag .e i{display:inline-block;width:8px;height:8px;border-radius:9px;margin-right:6px}
+#xaag .x{margin-top:12px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}
+#xass{position:fixed;inset:0;z-index:95;background:#0b1018;overflow:hidden;opacity:0;transition:opacity 1.2s;color:#fff;font-family:system-ui,sans-serif}#xass[hidden]{display:none}#xass.in{opacity:1}
+#xass .ph{position:absolute;inset:-4%;background:center/cover no-repeat;opacity:0;transition:opacity 2s}#xass .ph.on{opacity:1;animation:xakb 16s ease-in-out forwards}
+@keyframes xakb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.09) translate(-1.5%,-1%)}}
+#xass .sh{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,0) 45%),linear-gradient(to bottom,rgba(0,0,0,.35),rgba(0,0,0,0) 25%)}
+#xass .nofoto{position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,#2c5d4c,#0b1018 70%);animation:xagr 30s ease-in-out infinite alternate}@keyframes xagr{to{filter:hue-rotate(40deg)}}
+#xass .clk{position:absolute;left:4vw;bottom:5vh}#xass .clk b{display:block;font:300 clamp(64px,13vw,160px)/1 system-ui,sans-serif;letter-spacing:-.02em;text-shadow:0 2px 20px rgba(0,0,0,.4)}
+#xass .clk span{font-size:clamp(16px,2.4vw,26px);opacity:.92;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+#xass .ag{position:absolute;right:4vw;bottom:5vh;max-width:40vw;text-align:right;font-size:clamp(14px,1.9vw,22px);line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.6)}#xass .ag small{display:block;opacity:.75;font-size:.75em;text-transform:uppercase;letter-spacing:.08em}
+#xass .al{position:absolute;left:50%;top:3vh;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:92vw}
+#xass .al span{background:rgba(208,70,58,.92);border-radius:99px;padding:8px 16px;font-weight:600;font-size:clamp(13px,1.7vw,18px)}#xass .al span.w{background:rgba(232,163,59,.92);color:#1c1408}
+#xass .dim{position:absolute;inset:0;background:#000;opacity:0;transition:opacity 2s;pointer-events:none}`;document.head.appendChild(st)}
+// ---- bovenbalk: weer + eerstvolgende afspraak ----
+const xaBar=document.createElement('div');xaBar.id='xatop';xaBar.innerHTML='<span class="w" id="xaw">…</span><button id="xanext">📅 Agenda</button>';
+(document.querySelector('.demo')||document.body).after(xaBar);
+function xaTop(){const w=XA.wx;document.getElementById('xaw').textContent=w?w.i[0]+' '+w.t+'° · '+w.i[1]:'…';
+  const n=XA.ev.find(e=>e.e>Date.now());document.getElementById('xanext').textContent=n?'📅 '+dagNaam(n.s)+' '+evTxt(n):'📅 Agenda'}
+// ---- agenda-paneel ----
+const xaAg=document.createElement('div');xaAg.id='xaag';xaAg.hidden=true;document.body.appendChild(xaAg);
+function xaAgRender(){let h='<div class="bx"><h2>Agenda Robert & Maaike</h2>';
+  if(!XA.url){h+='<p>Nog niet gekoppeld. Tik linksboven op het Live-knopje en vul het agenda-adres en de sleutel in.</p>'}
+  else if(!XA.ev.length){h+='<p>Geen afspraken de komende 2 weken. 🎉</p>'}
+  else{let last='';XA.ev.filter(e=>e.e>Date.now()).forEach(e=>{const d=dagNaam(e.s);if(d!==last){h+='<h3>'+d+'</h3>';last=d}
+    h+='<div class="e"><b>'+(e.hd?'Hele dag':hm(e.s))+'</b><div><i style="background:'+xaEsc(e.c||'#1f7a5c')+'"></i>'+xaEsc(e.t)+(e.l?'<br><small style="color:#5a6964">'+xaEsc(e.l)+'</small>':'')+'</div></div>'})}
+  xaAg.innerHTML=h+'<button class="x">Sluiten</button></div>';xaAg.querySelector('.x').onclick=()=>xaAg.hidden=true}
+document.getElementById('xanext').onclick=e=>{e.stopPropagation();xaAgRender();xaAg.hidden=false};
+xaAg.onclick=e=>{if(e.target===xaAg)xaAg.hidden=true};
+// ---- instellingen: agenda-adres + sleutel + wachttijd ----
+{const bx=document.querySelector('#lvset .bx'),sv=document.getElementById('lvsave');if(bx&&sv){
+  const d=document.createElement('div');d.style.cssText='display:flex;flex-direction:column;gap:8px;border-top:1px solid #e3e9e6;padding-top:8px';
+  d.innerHTML='<b>Agenda & foto\'s (Google-script)</b><input id="xaurl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"><input id="xakey" type="password" placeholder="Sleutel uit het script" autocomplete="off">'+
+    '<label style="display:flex;gap:8px;align-items:center"><span>Fotoshow na</span><input id="xaidle" type="number" min="1" max="60" style="width:70px"><span>minuten</span></label>';
+  bx.insertBefore(d,sv);const lp=document.getElementById('lvpill');
+  lp&&lp.addEventListener('click',()=>{document.getElementById('xaurl').value=XA.url;document.getElementById('xakey').value=XA.key;document.getElementById('xaidle').value=XA.idleMin});
+  sv.addEventListener('click',()=>{XA.url=document.getElementById('xaurl').value.trim();XA.key=document.getElementById('xakey').value.trim();XA.idleMin=Math.max(1,+document.getElementById('xaidle').value||5);
+    try{localStorage.setItem('gas_url',XA.url);localStorage.setItem('gas_key',XA.key);localStorage.setItem('ss_idle',XA.idleMin)}catch(e){}XA.ids=[];xaAgenda()})}}
+try{XA.idleMin=+localStorage.getItem('ss_idle')||5}catch(e){}
+// ---- foto-schermbeveiliging ----
+const SS=document.createElement('div');SS.id='xass';SS.hidden=true;
+SS.innerHTML='<div class="nofoto"></div><div class="ph"></div><div class="ph"></div><div class="sh"></div><div class="al"></div><div class="clk"><b></b><span></span></div><div class="ag"></div><div class="dim"></div>';
+document.body.appendChild(SS);const PH=[...SS.querySelectorAll('.ph')];let phA=0,phT=null;
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function xaUrgent(){const o=[];D.forEach(d=>{if(d.t==='door'&&d.v==='Open')o.push(['w','🪟 '+(d.n||d.n0)+' open'])});
+  (LV.all||[]).forEach(h=>{const c=h.capabilitiesObj||{},b=c.measure_battery&&c.measure_battery.value;if(typeof b==='number'&&b<=10)o.push(['','🔋 '+h.name+' '+b+'%']);
+    if(c.alarm_water&&c.alarm_water.value)o.push(['','💧 Lekkage: '+h.name]);if(c.alarm_smoke&&c.alarm_smoke.value)o.push(['','🔥 Rook: '+h.name])});return o}
+function xaSS(){if(!XA.on)return;const n=new Date(),w=XA.wx;SS.querySelector('.clk b').textContent=hm(n);
+  SS.querySelector('.clk span').textContent=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][n.getDay()]+' '+n.getDate()+' '+MND[n.getMonth()]+(w?'  ·  '+w.i[0]+' '+w.t+'° '+w.i[1]+' · '+w.lo+'°/'+w.hi+'°':'');
+  const up=XA.ev.filter(e=>e.e>Date.now()).slice(0,3);SS.querySelector('.ag').innerHTML=up.length?'<small>Komt eraan</small>'+up.map(e=>xaEsc(dagNaam(e.s)+' '+evTxt(e))).join('<br>'):'';
+  SS.querySelector('.al').innerHTML=xaUrgent().map(a=>'<span class="'+a[0]+'">'+xaEsc(a[1])+'</span>').join('');
+  const h=n.getHours();SS.querySelector('.dim').style.opacity=(h>=23||h<6)?.55:0}
+async function xaFoto(){clearTimeout(phT);if(!XA.on)return;
+  try{if(!XA.ids.length&&XA.url&&XA.key){const j=await (await fetch(gas('a=fotos'))).json();XA.ids=shuffle(j.ids||[]);XA.idx=0}
+    if(XA.ids.length){const id=XA.ids[XA.idx++%XA.ids.length];if(XA.idx>=XA.ids.length){XA.idx=0;shuffle(XA.ids)}
+      const j=await (await fetch(gas('a=foto&w='+Math.min(2000,Math.round(innerWidth*devicePixelRatio))+'&id='+encodeURIComponent(id)))).json();
+      if(j.img&&XA.on){const im=new Image();im.onload=()=>{const nx=PH[1-phA];nx.style.backgroundImage='url('+j.img+')';nx.classList.remove('on');void nx.offsetWidth;nx.classList.add('on');PH[phA].classList.remove('on');phA=1-phA};im.src=j.img}}}
+  catch(e){}phT=setTimeout(xaFoto,12000)}
+function xaStart(){if(XA.on)return;XA.on=true;SS.hidden=false;requestAnimationFrame(()=>SS.classList.add('in'));xaSS();xaFoto()}
+function xaStop(){XA.on=false;clearTimeout(phT);SS.classList.remove('in');setTimeout(()=>{if(!XA.on)SS.hidden=true},1200);XA.last=Date.now()}
+['pointerdown','keydown','wheel'].forEach(t=>addEventListener(t,e=>{XA.last=Date.now();if(XA.on){e.stopPropagation();e.preventDefault();xaStop()}},{capture:true,passive:false}));
+setInterval(()=>{if(!XA.on&&Date.now()-XA.last>XA.idleMin*60e3)xaStart();xaSS()},10000);
+xaWeer();xaAgenda();xaTop();
 </script></body></html>
