@@ -1654,12 +1654,12 @@ const muP=document.createElement('div');muP.id='mupick';muP.hidden=true;document
 async function muOpen(room,dev){muP.hidden=false;muP.innerHTML='<div class="bx"><h2>🎵 Muziek · '+xaEsc(room)+'</h2><p>Favorieten ophalen…</p></div>';
   if(!MU.fav[dev]||!MU.fav[dev].length){MU.fav[dev]=(await sonAuto(dev,'cloud_play_sonos_favorite','favorite'))||[];const e1=MU.err;MU.pl[dev]=(await sonAuto(dev,'cloud_play_sonos_playlist','playlist'))||[];if(!MU.fav[dev].length)MU.err=e1}
   const items=MU.fav[dev].map(f=>({f,k:soort(f),card:'cloud_play_sonos_favorite',arg:'favorite'})).concat(MU.pl[dev].map(f=>({f,k:'Afspeellijsten',card:'cloud_play_sonos_playlist',arg:'playlist'})));
-  const tabs=['Alles',...['Spotify','Radio','Afspeellijsten','Lokaal & overig'].filter(k=>items.some(i=>i.k===k))];let cur='Alles';
+  const tabs=['Mijn Spotify','Alles',...['Spotify','Radio','Afspeellijsten','Lokaal & overig'].filter(k=>items.some(i=>i.k===k))];let cur=MU.cur||(SP.rt?'Mijn Spotify':'Alles');
   const draw=()=>{const L=items.filter(i=>cur==='Alles'||i.k===cur);
     muP.innerHTML='<div class="bx"><h2>🎵 Muziek · '+xaEsc(room)+'</h2><div class="tabs">'+tabs.map(t=>'<button aria-pressed="'+(t===cur)+'" data-tab="'+t+'">'+t+'</button>').join('')+'</div>'+
-      (L.length?'<div class="grid">'+L.map((i,n)=>'<button class="t" data-n="'+items.indexOf(i)+'">'+(i.f.image?'<img src="'+xaEsc(String(i.f.image).replace(/^http:/,'https:'))+'" alt="" onerror="this.outerHTML=\'<span class=ph>🎵</span>\'">':'<span class="ph">'+(i.k==='Radio'?'📻':i.k==='Spotify'?'🟢':'🎵')+'</span>')+xaEsc(i.f.name)+'<small>'+xaEsc(i.f.description||i.k)+'</small></button>').join('')+'</div>'
+      (cur==='Mijn Spotify'?'<div id="spv"></div>':L.length?'<div class="grid">'+L.map((i,n)=>'<button class="t" data-n="'+items.indexOf(i)+'">'+(i.f.image?'<img src="'+xaEsc(String(i.f.image).replace(/^http:/,'https:'))+'" alt="" onerror="this.outerHTML=\'<span class=ph>🎵</span>\'">':'<span class="ph">'+(i.k==='Radio'?'📻':i.k==='Spotify'?'🟢':'🎵')+'</span>')+xaEsc(i.f.name)+'<small>'+xaEsc(i.f.description||i.k)+'</small></button>').join('')+'</div>'
         :'<p>Niks gevonden. Zet in de Sonos-app zenders, Spotify-lijsten of albums bij je <b>Sonos-favorieten</b>, dan verschijnen ze hier.</p>'+(MU.err&&MU.err.length?'<p style="font:12px monospace;color:#a33">Homey zegt: '+xaEsc(MU.err.join(' | '))+'</p>':''))+'<button class="x">Sluiten</button></div>';
-    muP.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{cur=b.dataset.tab;draw()});muP.querySelector('.x').onclick=()=>muP.hidden=true;
+    muP.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{cur=MU.cur=b.dataset.tab;draw()});muP.querySelector('.x').onclick=()=>muP.hidden=true;if(cur==='Mijn Spotify')spRender(document.getElementById('spv'),room,dev);
     muP.querySelectorAll('[data-n]').forEach(b=>b.onclick=async()=>{const i=items[+b.dataset.n],a={};a[i.arg]=i.f;
       try{await sonRun(dev,i.card,a);toast('🎵 '+i.f.name+' speelt in '+room);muP.hidden=true;setTimeout(lvPoll,1500)}catch(e){toast('⚠️ Afspelen lukte niet ('+e.message+')')}})};
   draw()}
@@ -1675,4 +1675,109 @@ function muSection(room,dev){const pl=!!sonCap(dev,'speaker_playing'),tr=sonCap(
 {const _rr=rpRender;rpRender=function(){_rr.apply(this,arguments);try{if(!rpOpen||!LV.ok)return;const room=inside&&inside.n,dev=SONOS[room];if(!dev||!sonDev(dev))return;
   rp.querySelectorAll('.sec').forEach(s=>{if(/sonos|muziek/i.test((s.querySelector('h3')||{}).textContent||''))s.remove()});
   const after=rp.querySelector('.rps');(after?after:rp.firstChild).after(muSection(room,dev))}catch(e){console.warn(e)}}}
+
+// ===================== SPOTIFY (volledige bediening via Spotify Web API, PKCE; Sonos als Spotify Connect-speaker) =====================
+const SP={cid:'',rt:'',at:'',exp:0,me:null,sub:'Afspeellijsten',q:'',cache:{}};
+const SP_REDIR=location.origin+location.pathname.replace(/index\.html$/,'');
+const SP_SCOPES='user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-read-collaborative user-library-read user-read-recently-played';
+try{SP.cid=localStorage.getItem('sp_cid')||'';SP.rt=localStorage.getItem('sp_rt')||''}catch(e){}
+const spStore=()=>{try{localStorage.setItem('sp_cid',SP.cid);SP.rt?localStorage.setItem('sp_rt',SP.rt):localStorage.removeItem('sp_rt')}catch(e){}};
+const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+async function spLogin(){if(!SP.cid){toast('⚠️ Vul eerst je Spotify Client ID in');return}
+  const v=b64u(crypto.getRandomValues(new Uint8Array(48)));try{localStorage.setItem('sp_ver',v)}catch(e){}
+  const ch=b64u(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
+  location.href='https://accounts.spotify.com/authorize?'+new URLSearchParams({client_id:SP.cid,response_type:'code',redirect_uri:SP_REDIR,code_challenge_method:'S256',code_challenge:ch,scope:SP_SCOPES})}
+async function spToken(body){const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error_description||j.error||('token '+r.status));
+  SP.at=j.access_token;SP.exp=Date.now()+(j.expires_in-60)*1000;if(j.refresh_token)SP.rt=j.refresh_token;spStore();return SP.at}
+async function spTok(){if(SP.at&&Date.now()<SP.exp)return SP.at;if(!SP.rt)throw new Error('niet gekoppeld');
+  try{return await spToken({grant_type:'refresh_token',refresh_token:SP.rt,client_id:SP.cid})}catch(e){if(/invalid_grant|revoked/i.test(e.message)){SP.rt='';spStore()}throw e}}
+async function spApi(path,opt={},again){const t=await spTok();const r=await fetch('https://api.spotify.com/v1'+path,{...opt,headers:{Authorization:'Bearer '+t,...(opt.body?{'Content-Type':'application/json'}:{})}});
+  if(r.status===401&&!again){SP.at='';return spApi(path,opt,1)}if(r.status===204||r.status===202)return null;
+  const j=await r.json().catch(()=>null);if(!r.ok){const e=new Error((j&&j.error&&(j.error.message||j.error))||('fout '+r.status));e.status=r.status;throw e}return j}
+// terugkomst van het Spotify-inlogscherm
+(async()=>{const p=new URLSearchParams(location.search);if(!p.has('code')&&!p.has('error'))return;history.replaceState(null,'',SP_REDIR);
+  if(p.get('error')){toast('⚠️ Spotify-koppeling geannuleerd');return}
+  let v='';try{v=localStorage.getItem('sp_ver')||''}catch(e){}
+  try{await spToken({grant_type:'authorization_code',code:p.get('code'),redirect_uri:SP_REDIR,client_id:SP.cid,code_verifier:v});toast('🟢 Spotify gekoppeld!')}catch(e){toast('⚠️ Spotify-koppeling mislukt: '+e.message)}
+  try{localStorage.removeItem('sp_ver')}catch(e){}})();
+
+// kamer → Spotify Connect-speaker (zoekt op kamernaam en Homey-naam van de Sonos)
+const spNorm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+async function spDevice(room,dev){const j=await spApi('/me/player/devices');const L=(j&&j.devices)||[];
+  const names=[room,(sonDev(dev)||{}).name].map(spNorm).filter(Boolean);let saved='';try{saved=localStorage.getItem('sp_dev_'+room)||''}catch(e){}
+  const hit=L.find(d=>d.name===saved)||L.find(d=>names.includes(spNorm(d.name)))||L.find(d=>names.some(n=>spNorm(d.name).includes(n)||n.includes(spNorm(d.name))));
+  return {hit,all:L}}
+async function spPlay(room,dev,item,pickedId){
+  let id=pickedId;
+  if(!id){const {hit,all}=await spDevice(room,dev);
+    if(!hit){spPickDevice(room,dev,item,all);return}id=hit.id}
+  const body=item.type==='track'?{uris:[item.uri]}:{context_uri:item.uri};
+  try{await spApi('/me/player/play?device_id='+id,{method:'PUT',body:JSON.stringify(body)})}
+  catch(e){if(e.status!==404)throw e;await spApi('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[id],play:false})});await new Promise(r=>setTimeout(r,800));
+    await spApi('/me/player/play?device_id='+id,{method:'PUT',body:JSON.stringify(body)})}
+  toast('🟢 '+item.name+' speelt in '+room);muP.hidden=true;setTimeout(lvPoll,2000)}
+function spPickDevice(room,dev,item,all){const el=document.getElementById('spv');if(!el)return;
+  el.innerHTML='<p><b>Welke speaker is '+xaEsc(room)+'?</b></p>'+(all.length?'<div class="spdl">'+all.map((d,i)=>'<button data-d="'+i+'">🔈 '+xaEsc(d.name)+'</button>').join('')+'</div><small>Je keuze wordt onthouden.</small>'
+    :'<p>Spotify ziet nu geen enkele speaker. Open één keer de Spotify-app op je telefoon, tik op 🔈 (apparaten) en kies daar deze Sonos. Daarna kent hij hem.</p>');
+  el.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{const d=all[+b.dataset.d];try{localStorage.setItem('sp_dev_'+room,d.name)}catch(e){}
+    try{await spPlay(room,dev,item,d.id)}catch(e){toast('⚠️ Spotify: '+e.message)}})}
+
+// lijsten ophalen
+const spImg=x=>{const a=(x&&(x.images||(x.album&&x.album.images)))||[];return (a[a.length>1?1:0]||{}).url||''};
+async function spList(sub){if(SP.cache[sub])return SP.cache[sub];let L=[];
+  if(sub==='Afspeellijsten'){if(!SP.me)SP.me=await spApi('/me');
+    L=[{type:'collection',name:'Favoriete nummers',uri:'spotify:user:'+SP.me.id+':collection',img:'',sub:'Jouw ❤️-nummers'}];
+    for(let off=0;off<150;off+=50){const j=await spApi('/me/playlists?limit=50&offset='+off);(j.items||[]).filter(Boolean).forEach(p=>L.push({type:'playlist',name:p.name,uri:p.uri,img:spImg(p),sub:(p.owner&&p.owner.display_name)||'Afspeellijst'}));if(!j.next)break}}
+  else if(sub==='Albums'){const j=await spApi('/me/albums?limit=50');L=(j.items||[]).map(a=>a.album).filter(Boolean).map(a=>({type:'album',name:a.name,uri:a.uri,img:spImg(a),sub:(a.artists||[]).map(x=>x.name).join(', ')}))}
+  else if(sub==='Recent'){const j=await spApi('/me/player/recently-played?limit=50');const seen=new Set();
+    (j.items||[]).forEach(it=>{const t=it.track;if(!t)return;const c=it.context;
+      if(c&&c.uri&&/playlist|album|artist/.test(c.type)){if(seen.has(c.uri))return;seen.add(c.uri);
+        L.push(c.type==='album'&&t.album?{type:'album',name:t.album.name,uri:c.uri,img:spImg(t.album),sub:'Album · '+(t.artists||[]).map(x=>x.name).join(', ')}:{type:c.type,name:c.type==='playlist'?'Afspeellijst':'Artiest',uri:c.uri,img:spImg(t.album),sub:'Laatst: '+t.name,lazy:c.type==='playlist'?c.href:''})}
+      else{if(seen.has(t.uri))return;seen.add(t.uri);L.push({type:'track',name:t.name,uri:t.uri,img:spImg(t),sub:(t.artists||[]).map(x=>x.name).join(', ')})}});
+    // namen van afspeellijsten bijzoeken (losse aanvraag per lijst, max 8)
+    await Promise.all(L.filter(x=>x.lazy).slice(0,8).map(async x=>{try{const p=await spApi('/playlists/'+x.uri.split(':').pop()+'?fields=name,images');x.name=p.name;x.img=spImg(p)||x.img}catch(e){}}))}
+  SP.cache[sub]=L;setTimeout(()=>{delete SP.cache[sub]},10*60e3);return L}
+async function spSearch(q){const j=await spApi('/search?'+new URLSearchParams({q,type:'artist,playlist,album,track',limit:'8',market:'from_token'}));const L=[];
+  ((j.artists||{}).items||[]).filter(Boolean).slice(0,4).forEach(a=>L.push({type:'artist',name:a.name,uri:a.uri,img:spImg(a),sub:'Artiest'}));
+  ((j.tracks||{}).items||[]).filter(Boolean).forEach(t=>L.push({type:'track',name:t.name,uri:t.uri,img:spImg(t),sub:'Nummer · '+(t.artists||[]).map(x=>x.name).join(', ')}));
+  ((j.albums||{}).items||[]).filter(Boolean).forEach(a=>L.push({type:'album',name:a.name,uri:a.uri,img:spImg(a),sub:'Album · '+(a.artists||[]).map(x=>x.name).join(', ')}));
+  ((j.playlists||{}).items||[]).filter(Boolean).forEach(p=>L.push({type:'playlist',name:p.name,uri:p.uri,img:spImg(p),sub:'Afspeellijst'}));
+  return L}
+
+{const st=document.createElement('style');st.textContent=`
+#mupick .spbar{display:flex;gap:8px;margin-bottom:10px}#mupick .spbar input{flex:1;padding:11px 12px;border:1px solid #ccd5d1;border-radius:12px;font-size:15px}
+#mupick .spsub{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}#mupick .spsub button{border:1px solid #ccd5d1;background:#fff;border-radius:99px;padding:6px 12px;font-size:13.5px}#mupick .spsub button[aria-pressed=true]{background:#1db954;border-color:#1db954;color:#fff}
+#mupick .spbig{width:100%;padding:14px;border:0;border-radius:12px;background:#1db954;color:#fff;font-weight:700;font-size:16px}
+#mupick .spdl{display:flex;flex-direction:column;gap:8px;margin:8px 0}#mupick .spdl button{padding:12px;border:0;border-radius:12px;background:#f2f5f4;text-align:left;font-size:15px}
+#mupick .spctl{display:flex;gap:8px;align-items:center;margin:-2px 0 10px;font-size:13px;color:#5a6964}#mupick .spctl button{border:0;border-radius:99px;padding:6px 12px;background:#e3e9e6;font-size:13px}#mupick .spctl button[aria-pressed=true]{background:#1db954;color:#fff}`;document.head.appendChild(st)}
+
+async function spRender(el,room,dev){
+  if(!SP.cid){el.innerHTML='<p>Vul eerst je <b>Spotify Client ID</b> in bij de instellingen (tik op het Live-bolletje).</p>';return}
+  if(!SP.rt){el.innerHTML='<p>Nog één keer inloggen bij Spotify, daarna blijft hij gekoppeld.</p><button class="spbig">🟢 Koppel Spotify</button>';el.querySelector('.spbig').onclick=spLogin;return}
+  let shuf=false;try{shuf=localStorage.getItem('sp_shuf')==='1'}catch(e){}
+  el.innerHTML='<div class="spbar"><input type="search" placeholder="🔎 Zoek artiest, nummer, album…" value="'+xaEsc(SP.q)+'" enterkeyhint="search"></div>'+
+    '<div class="spsub">'+['Afspeellijsten','Recent','Albums'].map(s=>'<button data-s="'+s+'" aria-pressed="'+(!SP.q&&SP.sub===s)+'">'+s+'</button>').join('')+'</div>'+
+    '<div class="spctl"><button data-sh aria-pressed="'+shuf+'">🔀 Shuffle '+(shuf?'aan':'uit')+'</button></div><div id="spg"><p>Laden…</p></div>';
+  const g=el.querySelector('#spg'),inp=el.querySelector('input');
+  const show=async(fn)=>{g.innerHTML='<p>Laden…</p>';try{const L=await fn();
+      g.innerHTML=L.length?'<div class="grid">'+L.map((x,i)=>'<button class="t" data-i="'+i+'">'+(x.img?'<img src="'+xaEsc(x.img)+'" alt="" loading="lazy">':'<span class="ph">'+(x.type==='collection'?'💚':x.type==='artist'?'🎤':'🟢')+'</span>')+xaEsc(x.name)+'<small>'+xaEsc(x.sub||'')+'</small></button>').join('')+'</div>':'<p>Niks gevonden.</p>';
+      g.querySelectorAll('[data-i]').forEach(b=>b.onclick=async()=>{const x=L[+b.dataset.i];b.style.opacity=.5;
+        try{await spPlay(room,dev,x);if(x.type!=='track'){const {hit}=await spDevice(room,dev).catch(()=>({}));if(hit)spApi('/me/player/shuffle?state='+shuf+'&device_id='+hit.id,{method:'PUT'}).catch(()=>{})}}
+        catch(e){b.style.opacity=1;toast('⚠️ Spotify: '+e.message)}})}
+    catch(e){g.innerHTML='<p style="color:#a33">Spotify zegt: '+xaEsc(e.message)+'</p>'+(SP.rt?'':'<button class="spbig">🟢 Opnieuw koppelen</button>');const b=g.querySelector('.spbig');if(b)b.onclick=spLogin}};
+  el.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{SP.q='';SP.sub=b.dataset.s;spRender(el,room,dev)});
+  el.querySelector('[data-sh]').onclick=e=>{shuf=!shuf;try{localStorage.setItem('sp_shuf',shuf?'1':'0')}catch(x){}e.target.setAttribute('aria-pressed',shuf);e.target.textContent='🔀 Shuffle '+(shuf?'aan':'uit')};
+  let tm;inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{SP.q=inp.value.trim();el.querySelectorAll('[data-s]').forEach(b=>b.setAttribute('aria-pressed',!SP.q&&SP.sub===b.dataset.s));show(()=>SP.q?spSearch(SP.q):spList(SP.sub))},500)};
+  inp.onkeydown=e=>{if(e.key==='Enter'){clearTimeout(tm);inp.blur();SP.q=inp.value.trim();show(()=>SP.q?spSearch(SP.q):spList(SP.sub))}};
+  show(()=>SP.q?spSearch(SP.q):spList(SP.sub))}
+
+// instellingen: Client ID + koppelknop
+{const bx=document.querySelector('#lvset .bx'),sv=document.getElementById('lvsave');if(bx&&sv){
+  const d=document.createElement('div');d.style.cssText='display:flex;flex-direction:column;gap:8px;border-top:1px solid #e3e9e6;padding-top:8px';
+  d.innerHTML='<b>Spotify</b><input id="spcid" placeholder="Spotify Client ID" autocomplete="off" spellcheck="false"><small id="spst"></small><button type="button" id="spgo" style="background:#1db954;color:#fff">🟢 Koppel Spotify</button>';
+  bx.insertBefore(d,sv);const upd=()=>{document.getElementById('spcid').value=SP.cid;document.getElementById('spst').textContent=SP.rt?'✅ Gekoppeld':'Nog niet gekoppeld';document.getElementById('spgo').textContent=SP.rt?'🔁 Opnieuw koppelen':'🟢 Koppel Spotify'};
+  const lp=document.getElementById('lvpill');lp&&lp.addEventListener('click',upd);upd();
+  const take=()=>{const v=document.getElementById('spcid').value.trim();if(v!==SP.cid){SP.cid=v;SP.rt='';SP.at=''}spStore()};
+  sv.addEventListener('click',take);document.getElementById('spgo').onclick=()=>{take();spLogin()}}}
 </script></body></html>
