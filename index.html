@@ -1912,4 +1912,57 @@ function hkScnBind(){hkP.querySelectorAll('[data-scn]').forEach(b=>b.onclick=()=
 {const _rr=rpRender;rpRender=function(){_rr.apply(this,arguments);try{if(!rpOpen||!LV.ok||!inside||!sonDev(HENK))return;const L=HK_SCN.filter(s=>s.r.includes(inside.n));if(!L.length)return;
   const d=document.createElement('div');d.className='sec';d.innerHTML='<h3>Henk</h3>'+L.map((s,i)=>'<button data-hs="'+HK_SCN.indexOf(s)+'" style="width:100%;border:0;border-radius:12px;padding:12px;margin-bottom:6px;background:#eef6f2;text-align:left;font:600 15px system-ui,sans-serif">🤖 Henk: '+s.t.replace(/^\S+\s/,'')+' schoonmaken</button>').join('');
   d.querySelectorAll('[data-hs]').forEach(b=>b.onclick=()=>hkScene(HK_SCN[+b.dataset.hs]));rp.appendChild(d)}catch(e){console.warn(e)}}}
+
+// ===================== SONOS-OVERZICHT: alle zones, groepen en volumes =====================
+const SZ_DEV=[...new Set(Object.values(SONOS))];
+const szZone=id=>{const r=Object.keys(SONOS).find(k=>SONOS[k]===id);return SONOS_ZONE[r]||r};
+const szName=id=>{const z=szZone(id);return z==='Huiskamer'?'Woonkamer':z};
+{const st=document.createElement('style');st.textContent=`
+#sonall{position:fixed;inset:0;z-index:97;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:16px}#sonall[hidden]{display:none}
+#sonall .bx{background:#fff;color:#14201c;border-radius:20px;padding:18px;width:min(760px,100%);max-height:90vh;overflow:auto;font:15px system-ui,sans-serif}
+#sonall .hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}#sonall h2{margin:0;font-size:22px;flex:1}
+#sonall .hd button{border:0;border-radius:99px;padding:8px 14px;background:#e3e9e6;font:600 14px system-ui,sans-serif}
+#sonall .grp{background:#f2f5f4;border-radius:16px;padding:12px;margin-bottom:10px}#sonall .grp.on{background:#eaf5ef}
+#sonall .gt{display:flex;align-items:center;gap:10px}#sonall .gt .nm{flex:1;min-width:0}#sonall .gt b{font-size:16px}#sonall .gt small{display:block;color:#5a6964;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sonall .ctl button{border:0;border-radius:12px;width:44px;height:44px;background:#e3e9e6;font-size:18px;margin-left:4px}#sonall .ctl .pp{background:#1f7a5c;color:#fff}
+#sonall .vol{display:flex;align-items:center;gap:8px;margin-top:8px}#sonall .vol input{flex:1}#sonall .vol button{border:0;border-radius:10px;width:38px;height:38px;background:#e3e9e6;font-size:20px;font-weight:700}
+#sonall .vol .pc{min-width:42px;text-align:right;font-size:13px;color:#5a6964}#sonall .vol .lb{min-width:96px;font-weight:600;font-size:14px}
+#sonall .mem{margin-top:6px;padding-top:6px;border-top:1px solid #dfe6e3}#sonall .mem .x{border:0;border-radius:99px;padding:6px 10px;background:#fff;font-size:12.5px;width:auto;height:auto}
+#sonall .add{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}#sonall .add button{border:1px dashed #9fb0ac;background:#fff;border-radius:99px;padding:7px 12px;font:600 13.5px system-ui,sans-serif;color:#14201c}
+#sonall .cls{margin-top:6px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}
+#nubar .sob{flex:none;border:0;border-radius:99px;padding:6px 12px;background:#2f3739;color:#fff;font:600 14px system-ui,sans-serif}`;document.head.appendChild(st)}
+const SA=document.createElement('div');SA.id='sonall';SA.hidden=true;document.body.appendChild(SA);SA.onclick=e=>{if(e.target===SA)SA.hidden=true};
+let saBusy=0;const saHold=()=>{saBusy=Date.now()+4000};
+async function saJoin(dev,targetDev){toast('🔗 '+szName(dev)+' gaat mee met '+szName(targetDev)+'…');
+  try{const L=(await sonAuto(dev,'cloud_join_household_player','player'))||[];const tz=spNorm(szZone(targetDev)),tn=spNorm(szName(targetDev));
+    const p=L.find(x=>spNorm(x.name)===tz)||L.find(x=>spNorm(x.name)===tn)||L.find(x=>spNorm(x.name).includes(tz)||tz.includes(spNorm(x.name)));
+    if(!p)throw new Error('speler '+szZone(targetDev)+' niet gevonden'+(L.length?' (wel: '+L.map(x=>x.name).join(', ')+')':''));
+    await sonRun(dev,'cloud_join_household_player',{player:p});setTimeout(lvPoll,1500);setTimeout(()=>{lvPoll();saDraw(1)},4000)}catch(e){toast('⚠️ Groeperen lukte niet: '+e.message)}}
+async function saLeave(dev){toast('✂️ '+szName(dev)+' gaat los');try{await sonRun(dev,'cloud_leave_current_group',{});setTimeout(lvPoll,1500);setTimeout(()=>{lvPoll();saDraw(1)},4000)}catch(e){toast('⚠️ Loskoppelen lukte niet: '+e.message)}}
+const saGVol=(dev,v)=>sonRun(dev,'set_group_volume',{volume:Math.max(1,Math.round(v))}).then(()=>setTimeout(lvPoll,800)).catch(e=>toast('⚠️ Groepsvolume: '+e.message));
+function saGroups(){const G=new Map();SZ_DEV.filter(id=>sonDev(id)).forEach(id=>{const g=sonCap(id,'sonos_group')||szZone(id);if(!G.has(g))G.set(g,[]);G.get(g).push(id)});return [...G.entries()]}
+function saVolRow(lab,val,key){return '<div class="vol"><span class="lb">'+lab+'</span><button data-vm="'+key+'">−</button><input type="range" min="0" max="100" value="'+val+'" data-vr="'+key+'"><button data-vp="'+key+'">+</button><span class="pc">'+val+'%</span></div>'}
+function saDraw(force){if(SA.hidden)return;if(!force&&Date.now()<saBusy)return;const G=saGroups();
+  SA.innerHTML='<div class="bx"><div class="hd"><h2>🔊 Sonos</h2><button data-allp>⏸ Alles pauzeren</button></div>'+
+    (G.length?G.map(([g,ids],gi)=>{const lead=ids.find(id=>sonCap(id,'speaker_playing'))||ids[0],pl=!!sonCap(lead,'speaker_playing');let tr=sonCap(lead,'speaker_track')||'',ar=sonCap(lead,'speaker_artist')||'';if(/^(HDMI|TV|spdif)$/i.test(tr)){tr='TV-geluid';ar=''}
+      const gv=Math.round(ids.reduce((s,id)=>s+(sonCap(id,'volume_set')||0),0)/ids.length*100),others=SZ_DEV.filter(id=>sonDev(id)&&!ids.includes(id));
+      return '<div class="grp'+(pl?' on':'')+'"><div class="gt"><span style="font-size:24px">'+(pl?'🔊':'🔈')+'</span><div class="nm"><b>'+ids.map(szName).join(' + ')+'</b><small>'+xaEsc([tr,ar].filter(Boolean).join(' – ')||'Niks aan het spelen')+'</small></div>'+
+        '<div class="ctl"><button data-sp="'+lead+'">⏮</button><button class="pp" data-pp="'+lead+'">'+(pl?'⏸':'▶')+'</button><button data-sn="'+lead+'">⏭</button><button data-pick="'+lead+'" title="Kies muziek">🎵</button></div></div>'+
+        (ids.length>1?saVolRow('Hele groep',gv,'g'+gi)+'<div class="mem">'+ids.map(id=>saVolRow(szName(id),Math.round((sonCap(id,'volume_set')||0)*100),id)+'<div style="text-align:right;margin-top:2px"><button class="x" data-lv="'+id+'">✂️ '+szName(id)+' loskoppelen</button></div>').join('')+'</div>'
+          :saVolRow('Volume',Math.round((sonCap(ids[0],'volume_set')||0)*100),ids[0]))+
+        (others.length?'<div class="add">'+others.map(o=>'<button data-jn="'+o+'" data-to="'+lead+'">＋ '+szName(o)+'</button>').join('')+'</div>':'')+'</div>'}).join('')
+      :'<p>Geen Sonos gevonden. Is het dashboard live gekoppeld aan Homey?</p>')+'<button class="cls">Sluiten</button></div>';
+  SA.querySelector('.cls').onclick=()=>SA.hidden=true;
+  SA.querySelector('[data-allp]').onclick=()=>{SZ_DEV.forEach(id=>{if(sonCap(id,'speaker_playing'))sonSet(id,'speaker_playing',false)});toast('⏸ Alles gepauzeerd');setTimeout(()=>saDraw(1),1500)};
+  SA.querySelectorAll('[data-pp]').forEach(b=>b.onclick=()=>{const id=b.dataset.pp,pl=!!sonCap(id,'speaker_playing');sonSet(id,'speaker_playing',!pl);b.textContent=pl?'▶':'⏸';saHold()});
+  SA.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>sonSet(b.dataset.sp,'speaker_prev',true));SA.querySelectorAll('[data-sn]').forEach(b=>b.onclick=()=>sonSet(b.dataset.sn,'speaker_next',true));
+  SA.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{const id=b.dataset.pick,room=Object.keys(SONOS).find(k=>SONOS[k]===id);SA.hidden=true;muOpen(room,id)});
+  SA.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>saLeave(b.dataset.lv));SA.querySelectorAll('[data-jn]').forEach(b=>b.onclick=()=>saJoin(b.dataset.jn,b.dataset.to));
+  SA.querySelectorAll('[data-vr]').forEach(inp=>{const k=inp.dataset.vr,pc=inp.parentNode.querySelector('.pc');let tm;
+    const go=()=>{pc.textContent=inp.value+'%';saHold();clearTimeout(tm);tm=setTimeout(()=>{if(k[0]==='g'){const ids=G[+k.slice(1)][1];saGVol(ids[0],+inp.value)}else sonSet(k,'volume_set',inp.value/100)},400)};
+    inp.oninput=go;inp.parentNode.querySelector('[data-vm]').onclick=()=>{inp.value=Math.max(0,+inp.value-2);go()};inp.parentNode.querySelector('[data-vp]').onclick=()=>{inp.value=Math.min(100,+inp.value+2);go()}})}
+function saOpen(){SA.hidden=false;saDraw(1)}
+{const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{saDraw()}catch(e){}return r}}
+// knop in de zwarte balk
+{const _d=nuDraw;nuDraw=function(){_d.apply(this,arguments);try{if(LV.ok&&!nuBar.querySelector('.sob')){const b=document.createElement('button');b.className='sob';b.textContent='🔊 Sonos';b.onclick=saOpen;const sp=nuBar.querySelector('.sp');sp?sp.after(b):nuBar.appendChild(b)}}catch(e){}}}
 </script></body></html>
