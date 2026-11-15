@@ -1634,8 +1634,9 @@ const SONOS={'Woonkamer':'dd06a628-1db9-42c0-8472-5b464e823a5b','Keuken':'01748d
 const MU={fav:{},pl:{}};
 const sonDev=id=>(LV.all||[]).find(h=>h.id===id);
 const sonCap=(id,k)=>{const h=sonDev(id),c=h&&h.capabilitiesObj&&h.capabilitiesObj[k];return c?c.value:undefined};
-async function sonAuto(dev,card,arg){for(const t of ['flowcardaction','action']){try{
-  const r=await fetch(lvBase()+'/api/manager/flow/'+t+'/homey:device:'+dev+'/'+card+'/autocomplete?name='+arg+'&query=',{headers:lvH()});if(r.ok)return await r.json()}catch(e){}}return null}
+async function sonAuto(dev,card,arg){MU.err=[];for(const t of ['flowcardaction','action','flowcard/action']){try{
+  const r=await fetch(lvBase()+'/api/manager/flow/'+t+'/homey:device:'+dev+'/'+card+'/autocomplete?name='+arg+'&query=',{headers:lvH()});if(r.ok)return await r.json();
+  let m='';try{const j=await r.json();m=j.error_description||j.error||''}catch(e){}MU.err.push(t+': '+r.status+(m?' '+m:''))}catch(e){MU.err.push(t+': '+e.message)}}return null}
 async function sonRun(dev,card,args){const r=await fetch(lvBase()+'/api/manager/flow/flowcardaction/homey:device:'+dev+'/'+card+'/run',{method:'POST',headers:lvH(),body:JSON.stringify({args})});if(!r.ok)throw new Error('fout '+r.status);return true}
 const sonSet=(dev,cap,val)=>fetch(lvBase()+'/api/manager/devices/device/'+dev+'/capability/'+cap,{method:'PUT',headers:lvH(),body:JSON.stringify({value:val})}).then(()=>setTimeout(lvPoll,500)).catch(()=>toast('⚠️ Sonos reageert niet'));
 const soort=f=>{const d=(f.description||'').toLowerCase();return /spotify/.test(d)?'Spotify':/tunein|radio|station/.test(d)?'Radio':'Lokaal & overig'};
@@ -1651,13 +1652,13 @@ const soort=f=>{const d=(f.description||'').toLowerCase();return /spotify/.test(
 #mupick .x{margin-top:12px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}`;document.head.appendChild(st)}
 const muP=document.createElement('div');muP.id='mupick';muP.hidden=true;document.body.appendChild(muP);muP.onclick=e=>{if(e.target===muP)muP.hidden=true};
 async function muOpen(room,dev){muP.hidden=false;muP.innerHTML='<div class="bx"><h2>🎵 Muziek · '+xaEsc(room)+'</h2><p>Favorieten ophalen…</p></div>';
-  if(!MU.fav[dev]){MU.fav[dev]=(await sonAuto(dev,'cloud_play_sonos_favorite','favorite'))||[];MU.pl[dev]=(await sonAuto(dev,'cloud_play_sonos_playlist','playlist'))||[]}
+  if(!MU.fav[dev]||!MU.fav[dev].length){MU.fav[dev]=(await sonAuto(dev,'cloud_play_sonos_favorite','favorite'))||[];const e1=MU.err;MU.pl[dev]=(await sonAuto(dev,'cloud_play_sonos_playlist','playlist'))||[];if(!MU.fav[dev].length)MU.err=e1}
   const items=MU.fav[dev].map(f=>({f,k:soort(f),card:'cloud_play_sonos_favorite',arg:'favorite'})).concat(MU.pl[dev].map(f=>({f,k:'Afspeellijsten',card:'cloud_play_sonos_playlist',arg:'playlist'})));
   const tabs=['Alles',...['Spotify','Radio','Afspeellijsten','Lokaal & overig'].filter(k=>items.some(i=>i.k===k))];let cur='Alles';
   const draw=()=>{const L=items.filter(i=>cur==='Alles'||i.k===cur);
     muP.innerHTML='<div class="bx"><h2>🎵 Muziek · '+xaEsc(room)+'</h2><div class="tabs">'+tabs.map(t=>'<button aria-pressed="'+(t===cur)+'" data-tab="'+t+'">'+t+'</button>').join('')+'</div>'+
       (L.length?'<div class="grid">'+L.map((i,n)=>'<button class="t" data-n="'+items.indexOf(i)+'">'+(i.f.image?'<img src="'+xaEsc(String(i.f.image).replace(/^http:/,'https:'))+'" alt="" onerror="this.outerHTML=\'<span class=ph>🎵</span>\'">':'<span class="ph">'+(i.k==='Radio'?'📻':i.k==='Spotify'?'🟢':'🎵')+'</span>')+xaEsc(i.f.name)+'<small>'+xaEsc(i.f.description||i.k)+'</small></button>').join('')+'</div>'
-        :'<p>Niks gevonden. Zet in de Sonos-app zenders, Spotify-lijsten of albums bij <b>Mijn Sonos</b>, dan verschijnen ze hier.</p>')+'<button class="x">Sluiten</button></div>';
+        :'<p>Niks gevonden. Zet in de Sonos-app zenders, Spotify-lijsten of albums bij je <b>Sonos-favorieten</b>, dan verschijnen ze hier.</p>'+(MU.err&&MU.err.length?'<p style="font:12px monospace;color:#a33">Homey zegt: '+xaEsc(MU.err.join(' | '))+'</p>':''))+'<button class="x">Sluiten</button></div>';
     muP.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{cur=b.dataset.tab;draw()});muP.querySelector('.x').onclick=()=>muP.hidden=true;
     muP.querySelectorAll('[data-n]').forEach(b=>b.onclick=async()=>{const i=items[+b.dataset.n],a={};a[i.arg]=i.f;
       try{await sonRun(dev,i.card,a);toast('🎵 '+i.f.name+' speelt in '+room);muP.hidden=true;setTimeout(lvPoll,1500)}catch(e){toast('⚠️ Afspelen lukte niet ('+e.message+')')}})};
