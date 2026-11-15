@@ -1609,7 +1609,7 @@ XA.afval={today:[],tomorrow:[]};
 const AFV={GFT:'GFT',PMD:'PMD',PAPIER:'Papier',REST:'Rest',PLASTIC:'Plastic',GLAS:'Glas',TEXTIEL:'Textiel',GROF:'Grof afval',SNOEI:'Snoeiafval',KCA:'Chemisch afval',KERSTBOOM:'Kerstboom'};
 async function afvCond(when,type){const body=JSON.stringify({args:{when,trash_type:type}}),h={method:'POST',headers:lvH(),body};
   const id='homey:app:com.trashchecker:days_to_collect';
-  for(const u of ['/api/manager/flow/flowcardcondition/homey:app:com.trashchecker/days_to_collect/run','/api/manager/flow/flowcardcondition/'+encodeURIComponent(id)+'/run']){
+  for(const u of ['/api/manager/flow/flowcardcondition/homey:app:com.trashchecker/'+id+'/run','/api/manager/flow/flowcardcondition/homey:app:com.trashchecker/days_to_collect/run']){
     try{const r=await fetch(lvBase()+u,h);if(!r.ok)continue;const j=await r.json();return j===true||(j&&j.result===true)}catch(e){}}
   return null}
 async function xaAfval(){if(LV.ok){const o={today:[],tomorrow:[]};
@@ -1634,10 +1634,10 @@ const SONOS={'Woonkamer':'dd06a628-1db9-42c0-8472-5b464e823a5b','Keuken':'01748d
 const MU={fav:{},pl:{}};
 const sonDev=id=>(LV.all||[]).find(h=>h.id===id);
 const sonCap=(id,k)=>{const h=sonDev(id),c=h&&h.capabilitiesObj&&h.capabilitiesObj[k];return c?c.value:undefined};
-async function sonAuto(dev,card,arg){MU.err=[];for(const t of ['flowcardaction','action','flowcard/action']){try{
-  const r=await fetch(lvBase()+'/api/manager/flow/'+t+'/homey:device:'+dev+'/'+card+'/autocomplete?name='+arg+'&query=',{headers:lvH()});if(r.ok)return await r.json();
+async function sonAuto(dev,card,arg){MU.err=[];const U='homey:device:'+dev;for(const t of [U+'/'+U+':'+card,U+'/'+card]){try{
+  const r=await fetch(lvBase()+'/api/manager/flow/flowcardaction/'+t+'/autocomplete?name='+arg+'&query=',{headers:lvH()});if(r.ok)return await r.json();
   let m='';try{const j=await r.json();m=j.error_description||j.error||''}catch(e){}MU.err.push(t+': '+r.status+(m?' '+m:''))}catch(e){MU.err.push(t+': '+e.message)}}return null}
-async function sonRun(dev,card,args){const r=await fetch(lvBase()+'/api/manager/flow/flowcardaction/homey:device:'+dev+'/'+card+'/run',{method:'POST',headers:lvH(),body:JSON.stringify({args})});if(!r.ok)throw new Error('fout '+r.status);return true}
+async function sonRun(dev,card,args){const U='homey:device:'+dev;let st=0;for(const t of [U+'/'+U+':'+card,U+'/'+card]){const r=await fetch(lvBase()+'/api/manager/flow/flowcardaction/'+t+'/run',{method:'POST',headers:lvH(),body:JSON.stringify({args})});if(r.ok)return true;st=r.status}throw new Error('fout '+st)}
 const sonSet=(dev,cap,val)=>fetch(lvBase()+'/api/manager/devices/device/'+dev+'/capability/'+cap,{method:'PUT',headers:lvH(),body:JSON.stringify({value:val})}).then(()=>setTimeout(lvPoll,500)).catch(()=>toast('⚠️ Sonos reageert niet'));
 const soort=f=>{const d=(f.description||'').toLowerCase();return /spotify/.test(d)?'Spotify':/tunein|radio|station/.test(d)?'Radio':'Lokaal & overig'};
 {const st=document.createElement('style');st.textContent=`
