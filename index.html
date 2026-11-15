@@ -234,7 +234,7 @@ function curtain(g,x,z,ax,w){w=w||.56;const ge=new T.PlaneGeometry(w,2.38,28,1),
   const r=new T.Mesh(new T.BoxGeometry(ax==='z'?.03:w+.05,.03,ax==='z'?w+.05:.03),BK);r.position.set(x,2.405,z);g.add(r)}
 // diagonal greyed-oak floor, used on the whole ground floor
 function oakTex(w,d){const t=cv(256,256,(c,W,H)=>{c.fillStyle='#b3aea6';c.fillRect(0,0,W,H);c.save();c.translate(W/2,H/2);c.rotate(Math.PI/4);
-  for(let i=-12;i<12;i++){c.fillStyle=`hsl(30,${3+rnd()*5}%,${62+rnd()*12}%)`;c.fillRect(-200,i*22,400,21);c.fillStyle='rgba(0,0,0,.18)';c.fillRect(-200+rnd()*200,i*22,2,21)}c.restore()});t.repeat.set(w,d);return t}
+  for(let i=-12;i<12;i++){c.fillStyle=`hsl(30,${3+rnd()*5}%,${62+rnd()*12}%)`;c.fillRect(-200,i*22,400,21);c.fillStyle='rgba(0,0,0,.18)';c.fillRect(-200+rnd()*200,i*22,2,21)}c.restore()});t.repeat.set(w,d);return tgT('oak',t)}
 function oakFloor(g,w,d,x,z,room){const p=new T.Mesh(new T.PlaneGeometry(w,d),M(0xffffff,{map:oakTex(w,d),roughness:.8}));p.rotation.x=-Math.PI/2;p.position.set(x,.004,z);p.receiveShadow=true;if(room)p.userData.room=room;g.add(p);return p}
 // ---- living room + passage behind the hall (from photos): sage walls, light cove with LED + spots, laminate, furniture ----
 {
@@ -1439,9 +1439,11 @@ try{const was=localStorage.getItem('dash_exp');if(was){localStorage.removeItem('
 
 
 // ===================== REALISTISCHE TEXTURES (vooraf getekend, map tex/; laden na het eerste beeld) =====================
+// Poly Haven-textures: hoeveel keer het plaatje per oude tegel herhaald wordt, zodat stenen/planken even groot blijven
+const TXF={brick:[1.333,.909],roof:[.25,.25],grass:[3,3],clad:[2,1.6],fence:[.889,1.111],deck:[.667,.667],pay:[.8,.8],oak:[.49,.49]};
 const TX2={apply(){const done=new Set();S.traverse(o=>{const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{const t=m&&m.map;
   if(!t||done.has(t)||!t.userData||!t.userData.kind)return;done.add(t);const u=t.userData,nm=u.kind+(u.kind==='pay'?'-'+String(u.p).replace('#','').toLowerCase():'')+'.jpg';
-  const im=new Image();im.onload=()=>{t.image=im;t.anisotropy=8;t.needsUpdate=true;if(typeof kick==='function')kick(1,10)};im.src='tex/'+nm})})}};
+  const im=new Image();im.onload=()=>{t.image=im;t.anisotropy=8;const f=TXF[u.kind];if(f&&!u.sc){t.repeat.x*=f[0];t.repeat.y*=f[1];u.sc=1}t.needsUpdate=true;if(typeof kick==='function')kick(1,10)};im.src='tex/'+nm+'?v=ph1'})})}};
 TX2.apply();
 // ===================== GEBAKKEN LICHT (Blender/Cycles) =====================
 // Elk onderdeel heeft een vast nummer (bid). huis-bake.glb bevat per nummer de vorm met een 2e UV-set,
