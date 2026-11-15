@@ -1807,14 +1807,14 @@ async function hkStart(){const p=hkPref();toast('🤖 Henk gaat aan de slag…')
 #henk h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#5a6964;margin:14px 0 6px}#henk .ch{display:flex;flex-wrap:wrap;gap:6px}
 #henk .ch button{border:1px solid #ccd5d1;background:#fff;border-radius:99px;padding:8px 13px;font:600 14px system-ui,sans-serif;color:#14201c}#henk .ch button[aria-pressed=true]{background:#1f7a5c;border-color:#1f7a5c;color:#fff}
 #henk .x{margin-top:14px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}
-#xahenk.err{background:#e8a33b!important}#xahenk.run{background:#cfe9dc!important}`;document.head.appendChild(st)}
+#henk .scn{display:grid;grid-template-columns:1fr 1fr;gap:8px}#henk .scn button{border:0;border-radius:14px;padding:13px 10px;background:#eef6f2;color:#14201c;font:600 15px system-ui,sans-serif;text-align:left}#henk .scn small{display:block;color:#5a6964;font-weight:500;font-size:12px}#henk details{margin-top:10px}#henk summary{color:#5a6964;font-size:13px;cursor:pointer}#henk .sset{display:grid;grid-template-columns:1fr auto auto;gap:6px 8px;align-items:center;margin-top:8px;font-size:14px}#henk .sset select{padding:6px;border-radius:8px;border:1px solid #ccd5d1;font-size:14px}#henk .sset button{border:0;border-radius:8px;padding:6px 10px;background:#e3e9e6;font-size:13px}#xahenk.err{background:#e8a33b!important}#xahenk.run{background:#cfe9dc!important}`;document.head.appendChild(st)}
 const hkP=document.createElement('div');hkP.id='henk';hkP.hidden=true;document.body.appendChild(hkP);hkP.onclick=e=>{if(e.target===hkP)hkP.hidden=true};
 function hkDraw(){if(hkP.hidden)return;const p=hkPref(),bat=hkCap('measure_battery'),err=hkErr(),stv=hkCap('vacuumcleaner_state'),busy=/clean/.test(stv||'')||/clean|go home|recharge/i.test(hkCap('measure_work_status')||'');
   const ch=(key,opts)=>'<div class="ch">'+opts.map(([v,t])=>'<button data-k="'+key+'" data-v="'+v+'" aria-pressed="'+(p[key]===v)+'">'+t+'</button>').join('')+'</div>';
   hkP.innerHTML='<div class="bx"><h2>🤖 Henk</h2><div class="st"><span style="font-size:34px">'+(busy?'🧹':'🏠')+'</span><div><b>'+xaEsc(hkStatus())+'</b>'+(bat!=null?'<div class="bat"><i style="width:'+bat+'%"></i></div><small>'+bat+'% batterij</small>':'')+'</div></div>'+
     (err?'<div class="er">⚠️ '+xaEsc(err)+'</div>':'')+
     '<div class="go">'+(busy?'<button class="big" data-a="pause">⏸ Pauze</button>':'<button class="big" data-a="start">▶ Start schoonmaak</button>')+'<button data-a="play">⏯ Hervat</button><button data-a="home">🏠 Naar huis</button></div>'+
-    '<div class="go" style="grid-template-columns:1fr;margin-top:8px"><button data-a="stop">⏹ Stop</button></div>'+
+    '<div class="go" style="grid-template-columns:1fr;margin-top:8px"><button data-a="stop">⏹ Stop</button></div>'+hkScnHtml()+
     '<h3>Wat moet hij doen</h3>'+ch('type',[['SWEEP_AND_MOP','Zuigen + dweilen'],['SWEEP_ONLY','Alleen zuigen'],['MOP_ONLY','Alleen dweilen']])+
     (p.type!=='SWEEP_ONLY'?'<h3>Water</h3>'+ch('water',[['LOW','Weinig'],['MEDIUM','Normaal'],['HIGH','Veel']]):'')+
     '<h3>Hoe grondig</h3>'+ch('ext',[['QUICK','Snel'],['NORMAL','Normaal'],['NARROW','Grondig']])+
@@ -1825,7 +1825,7 @@ function hkDraw(){if(hkP.hidden)return;const p=hkPref(),bat=hkCap('measure_batte
     if(busy&&b.dataset.k==='speed')hkDo('action_measure_clean_speed',{action_measure_clean_speed_type:q.speed},'Zuigkracht: '+b.textContent)});
   const A={start:hkStart,pause:()=>hkDo('action_control_mode',{action_control_mode_type:'PAUSE'},'⏸ Henk pauzeert'),play:()=>hkDo('action_control_mode',{action_control_mode_type:'PLAY'},'⏯ Henk gaat weer verder'),
     home:()=>hkDo('dock',{},'🏠 Henk gaat naar huis'),stop:()=>hkDo('stop',{},'⏹ Henk stopt')};
-  hkP.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>A[b.dataset.a]())}
+  hkP.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>A[b.dataset.a]());hkScnBind()}
 function hkOpen(){hkP.hidden=false;hkDraw()}
 function hkChip(){const top=document.getElementById('xatop');if(!top||!LV.ok||!sonDev(HENK))return;let c=document.getElementById('xahenk');
   if(!c){c=document.createElement('button');c.id='xahenk';c.onclick=hkOpen;top.appendChild(c)}
@@ -1892,4 +1892,23 @@ function wasAuto(){const p=sonCap('683a0388-5b84-441b-bc6a-8642ccafcc52','measur
   if(WAS.w&&p>20)wasClear('w');if(WAS.d&&/dry|run|cool|wrinkle|start/i.test(st))wasClear('d')}
 {const _u=xaUrgent;xaUrgent=function(){const o=_u();if(WAS.w)o.push(['i','🫧 Was is klaar, ophangen!','w']);if(WAS.d)o.push(['i','🌀 Droger is klaar','d']);return o}}
 setTimeout(wasPoll,5000);
+
+// ===================== HENK: SCÈNES PER KAMER (nummer per knop instelbaar op de tablet) =====================
+const HK_SCN=[{k:'maaltijd',t:'🍽️ Na de maaltijd',d:1,r:['Eetkamer']},{k:'keuken',t:'🍳 Keuken',d:4,r:['Keuken']},{k:'woonkamer',t:'🛋️ Woonkamer',d:5,r:['Woonkamer']},
+  {k:'gang',t:'🚪 Gang',d:6,r:['Gang']},{k:'heel',t:'🏠 Hele huis (dagelijks)',d:2,r:[]}];
+const hkMap=()=>{let m={};try{m=JSON.parse(localStorage.getItem('henk_scn')||'{}')}catch(e){}return m};
+const hkNum=s=>hkMap()[s.k]||s.d;
+function hkScene(s){const n=hkNum(s);hkDo('action_scenes',{action_scenes_type:'START_SCENE_CLEAN_'+n},'🤖 Henk start: '+s.t.replace(/^\S+\s/,''))}
+function hkScnHtml(){return '<h3>Kamer schoonmaken</h3><div class="scn">'+HK_SCN.map((s,i)=>'<button data-scn="'+i+'">'+s.t+'<small>Scène '+hkNum(s)+'</small></button>').join('')+'</div>'+
+  '<details><summary>🔧 Klopt een knop niet? Kies hier het juiste scènenummer</summary><div class="sset">'+
+  HK_SCN.map((s,i)=>'<span>'+s.t+'</span><select data-num="'+i+'">'+[1,2,3,4,5,6,7,8,9,10].map(n=>'<option'+(n===hkNum(s)?' selected':'')+'>'+n+'</option>').join('')+'</select><button data-tst="'+i+'">Test</button>').join('')+
+  '</div><p style="color:#5a6964;font-size:12.5px;margin:8px 0 0">Tip: tik op Test, kijk in de Eufy-app welke scène Henk start en stuur hem daarna met 🏠 Naar huis terug.</p></details>'}
+function hkScnBind(){hkP.querySelectorAll('[data-scn]').forEach(b=>b.onclick=()=>hkScene(HK_SCN[+b.dataset.scn]));
+  hkP.querySelectorAll('[data-tst]').forEach(b=>b.onclick=()=>hkScene(HK_SCN[+b.dataset.tst]));
+  hkP.querySelectorAll('[data-num]').forEach(sel=>sel.onchange=()=>{const m=hkMap();m[HK_SCN[+sel.dataset.num].k]=+sel.value;try{localStorage.setItem('henk_scn',JSON.stringify(m))}catch(e){}
+    const det=hkP.querySelector('details');const open=det&&det.open;hkDraw();const d2=hkP.querySelector('details');if(d2&&open)d2.open=true})}
+// knop in het kamerpaneel van kamers met een eigen scène
+{const _rr=rpRender;rpRender=function(){_rr.apply(this,arguments);try{if(!rpOpen||!LV.ok||!inside||!sonDev(HENK))return;const L=HK_SCN.filter(s=>s.r.includes(inside.n));if(!L.length)return;
+  const d=document.createElement('div');d.className='sec';d.innerHTML='<h3>Henk</h3>'+L.map((s,i)=>'<button data-hs="'+HK_SCN.indexOf(s)+'" style="width:100%;border:0;border-radius:12px;padding:12px;margin-bottom:6px;background:#eef6f2;text-align:left;font:600 15px system-ui,sans-serif">🤖 Henk: '+s.t.replace(/^\S+\s/,'')+' schoonmaken</button>').join('');
+  d.querySelectorAll('[data-hs]').forEach(b=>b.onclick=()=>hkScene(HK_SCN[+b.dataset.hs]));rp.appendChild(d)}catch(e){console.warn(e)}}}
 </script></body></html>
