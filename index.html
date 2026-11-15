@@ -1734,17 +1734,21 @@ async function spList(sub){if(SP.cache[sub])return SP.cache[sub];let L=[];
     // namen van afspeellijsten bijzoeken (losse aanvraag per lijst, max 8)
     await Promise.all(L.filter(x=>x.lazy).slice(0,8).map(async x=>{try{const p=await spApi('/playlists/'+x.uri.split(':').pop()+'?fields=name,images');x.name=p.name;x.img=spImg(p)||x.img}catch(e){}}))}
   SP.cache[sub]=L;setTimeout(()=>{delete SP.cache[sub]},10*60e3);return L}
-async function spSearch(q){const j=await spApi('/search?'+new URLSearchParams({q,type:'artist,playlist,album,track',limit:'8'}));const L=[];
-  ((j.artists||{}).items||[]).filter(Boolean).slice(0,4).forEach(a=>L.push({type:'artist',name:a.name,uri:a.uri,img:spImg(a),sub:'Artiest'}));
-  ((j.tracks||{}).items||[]).filter(Boolean).forEach(t=>L.push({type:'track',name:t.name,uri:t.uri,img:spImg(t),sub:'Nummer · '+(t.artists||[]).map(x=>x.name).join(', ')}));
-  ((j.albums||{}).items||[]).filter(Boolean).forEach(a=>L.push({type:'album',name:a.name,uri:a.uri,img:spImg(a),sub:'Album · '+(a.artists||[]).map(x=>x.name).join(', ')}));
-  ((j.playlists||{}).items||[]).filter(Boolean).forEach(p=>L.push({type:'playlist',name:p.name,uri:p.uri,img:spImg(p),sub:'Afspeellijst'}));
+async function spSearch(q){const S=(type,off)=>spApi('/search?'+new URLSearchParams({q,type,limit:'10',offset:String(off||0)})).catch(()=>({}));
+  const [a,b,c]=await Promise.all([S('playlist,artist,album,track',0),S('playlist',10),S('playlist',20)]);const L=[],seen=new Set();
+  const pl=[].concat(((a.playlists||{}).items||[]),((b.playlists||{}).items||[]),((c.playlists||{}).items||[])).filter(p=>p&&p.uri&&!seen.has(p.uri)&&seen.add(p.uri));
+  const ar=((a.artists||{}).items||[]).filter(Boolean).slice(0,6),al=((a.albums||{}).items||[]).filter(Boolean),tr=((a.tracks||{}).items||[]).filter(Boolean);
+  const sec=(t,arr,f)=>{if(arr.length){L.push({hdr:t});arr.forEach(x=>L.push(f(x)))}};
+  sec('Afspeellijsten',pl,p=>({type:'playlist',name:p.name,uri:p.uri,img:spImg(p),sub:(p.owner&&p.owner.display_name)||'Afspeellijst'}));
+  sec('Artiesten',ar,x=>({type:'artist',name:x.name,uri:x.uri,img:spImg(x),sub:'Artiest'}));
+  sec('Albums',al,x=>({type:'album',name:x.name,uri:x.uri,img:spImg(x),sub:(x.artists||[]).map(y=>y.name).join(', ')}));
+  sec('Nummers',tr,t=>({type:'track',name:t.name,uri:t.uri,img:spImg(t),sub:(t.artists||[]).map(y=>y.name).join(', ')}));
   return L}
 
 {const st=document.createElement('style');st.textContent=`
 #mupick .spbar{display:flex;gap:8px;margin-bottom:10px}#mupick .spbar input{flex:1;padding:11px 12px;border:1px solid #ccd5d1;border-radius:12px;font-size:15px}
 #mupick .spsub{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}#mupick .spsub button{border:1px solid #ccd5d1;background:#fff;border-radius:99px;padding:6px 12px;font-size:13.5px}#mupick .spsub button[aria-pressed=true]{background:#1db954;border-color:#1db954;color:#fff}
-#mupick .spbig{width:100%;padding:14px;border:0;border-radius:12px;background:#1db954;color:#fff;font-weight:700;font-size:16px}
+#mupick .sph{grid-column:1/-1;margin:8px 0 0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#5a6964}#mupick .spbig{width:100%;padding:14px;border:0;border-radius:12px;background:#1db954;color:#fff;font-weight:700;font-size:16px}
 #mupick .spdl{display:flex;flex-direction:column;gap:8px;margin:8px 0}#mupick .spdl button{padding:12px;border:0;border-radius:12px;background:#f2f5f4;text-align:left;font-size:15px}
 #mupick .spctl{display:flex;gap:8px;align-items:center;margin:-2px 0 10px;font-size:13px;color:#5a6964}#mupick .spctl button{border:0;border-radius:99px;padding:6px 12px;background:#e3e9e6;font-size:13px}#mupick .spctl button[aria-pressed=true]{background:#1db954;color:#fff}`;document.head.appendChild(st)}
 
@@ -1757,7 +1761,7 @@ async function spRender(el,room,dev){
     '<div class="spctl"><button data-sh aria-pressed="'+shuf+'">🔀 Shuffle '+(shuf?'aan':'uit')+'</button></div><div id="spg"><p>Laden…</p></div>';
   const g=el.querySelector('#spg'),inp=el.querySelector('input');
   const show=async(fn)=>{g.innerHTML='<p>Laden…</p>';try{const L=await fn();
-      g.innerHTML=L.length?'<div class="grid">'+L.map((x,i)=>'<button class="t" data-i="'+i+'">'+(x.img?'<img src="'+xaEsc(x.img)+'" alt="" loading="lazy">':'<span class="ph">'+(x.type==='collection'?'💚':x.type==='artist'?'🎤':'🟢')+'</span>')+xaEsc(x.name)+'<small>'+xaEsc(x.sub||'')+'</small></button>').join('')+'</div>':'<p>Niks gevonden.</p>';
+      g.innerHTML=L.length?'<div class="grid">'+L.map((x,i)=>x.hdr?'<h4 class="sph">'+xaEsc(x.hdr)+'</h4>':'<button class="t" data-i="'+i+'">'+(x.img?'<img src="'+xaEsc(x.img)+'" alt="" loading="lazy">':'<span class="ph">'+(x.type==='collection'?'💚':x.type==='artist'?'🎤':'🟢')+'</span>')+xaEsc(x.name)+'<small>'+xaEsc(x.sub||'')+'</small></button>').join('')+'</div>':'<p>Niks gevonden.</p>';
       g.querySelectorAll('[data-i]').forEach(b=>b.onclick=async()=>{const x=L[+b.dataset.i];b.style.opacity=.5;
         try{toast('⏳ Even geduld…');await spPlay(room,dev,x)}
         catch(e){b.style.opacity=1;toast('⚠️ Spotify: '+e.message)}})}
@@ -1845,7 +1849,7 @@ setInterval(()=>{try{hkChip()}catch(e){}},15e3);setTimeout(()=>{try{hkChip()}cat
 #nubar .mu{display:flex;align-items:center;gap:6px;background:#1d2224;border-radius:99px;padding:3px 3px 3px 12px;flex:none;max-width:44vw}
 #nubar .mu .tx{overflow:hidden;text-overflow:ellipsis;cursor:pointer}#nubar .mu .tx small{color:#9fb0ac;font-weight:500;margin-left:6px}
 #nubar .mu.off{opacity:.6}#nubar .mu button{border:0;border-radius:99px;width:34px;height:34px;background:#2f3739;color:#fff;font-size:15px;flex:none}
-#nubar .ok{color:#7d8c88;font-weight:500;padding-left:4px}#nubar .sp{flex:1}
+#nubar .inf{flex:none;border:0;border-radius:99px;padding:6px 12px;background:#1e3a5f;color:#cfe3ff;font:600 14px system-ui,sans-serif}#nubar .inf b{margin-left:4px;color:#8fd19e}#nubar .ok{color:#7d8c88;font-weight:500;padding-left:4px}#nubar .sp{flex:1}
 .bot{bottom:50px!important}#rp{bottom:104px!important}#toast{bottom:118px!important}`;document.head.appendChild(st)}
 const nuBar=document.createElement('div');nuBar.id='nubar';document.body.appendChild(nuBar);
 const NU_LAST={};// laatste moment dat een speaker speelde
@@ -1859,11 +1863,12 @@ function nuDraw(){
     let tr=sonCap(id,'speaker_track')||'',ar=sonCap(id,'speaker_artist')||'';if(/^(HDMI|TV|spdif)$/i.test(tr)){tr='TV-geluid';ar=''}
     mus.push({id,room,pl,tr,ar})});
   const k=JSON.stringify([al,mus.map(m=>[m.id,m.pl,m.tr,m.ar])]);if(nuBar._k===k)return;nuBar._k=k;
-  nuBar.innerHTML=al.map(([t,x])=>'<span class="al">'+xaEsc(x)+'</span>').join('')+
+  nuBar.innerHTML=al.map(([t,x,k])=>t==='i'?'<button class="inf" data-clr="'+k+'">'+xaEsc(x)+' <b>✓</b></button>':'<span class="al">'+xaEsc(x)+'</span>').join('')+
     (al.length?'':'<span class="ok">✅ Alles oké</span>')+'<span class="sp"></span>'+
     mus.map(m=>'<span class="mu'+(m.pl?'':' off')+'"><span class="tx" data-r="'+xaEsc(m.room)+'">'+(m.pl?'🔊 ':'⏸ ')+xaEsc(NU_NAME(m.room))+'<small>'+xaEsc([m.tr,m.ar].filter(Boolean).join(' – '))+'</small></span><button data-p="'+m.id+'" aria-label="'+(m.pl?'Pauze':'Afspelen')+'">'+(m.pl?'⏸':'▶')+'</button></span>').join('');
   nuBar.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const id=b.dataset.p,pl=!!sonCap(id,'speaker_playing');if(!pl)NU_LAST[id]=Date.now();sonSet(id,'speaker_playing',!pl);
     b.textContent=pl?'▶':'⏸'});
+  nuBar.querySelectorAll('[data-clr]').forEach(b=>b.onclick=()=>{wasClear(b.dataset.clr);toast('👍 Opgeruimd!')});
   nuBar.querySelectorAll('[data-r]').forEach(s=>s.onclick=()=>{const r=ROOMS.find(x=>x.n===s.dataset.r);if(r&&typeof enter==='function')enter(r)})}
 {const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{nuDraw()}catch(e){}return r}}
 setInterval(()=>{try{nuDraw()}catch(e){}},5000);setTimeout(()=>{try{nuDraw()}catch(e){}},2500);
@@ -1872,4 +1877,19 @@ setInterval(()=>{try{nuDraw()}catch(e){}},5000);setTimeout(()=>{try{nuDraw()}cat
 {const st=document.createElement('style');st.textContent='body.sson #nubar{z-index:96;background:rgba(0,0,0,.72)}body.sson #xass .al{display:none}';document.head.appendChild(st)}
 new MutationObserver(()=>document.body.classList.toggle('sson',!SS.hidden)).observe(SS,{attributes:true,attributeFilter:['hidden']});
 {const _s=xaSS;xaSS=function(){_s.apply(this,arguments);try{SS.style.setProperty('--alh','42px')}catch(e){}}}
+
+// ===================== WAS & DROGER KLAAR (Homey-variabelen via HomeyScript) =====================
+const WAS={w:false,d:false,V:{w:'6050ce8b-e81f-4ee7-b146-7dd2392f43b1',d:'1ca9b6fb-e4df-4df0-a7c2-76b5ea264e46'}};
+async function hsRun(code,arg){const C='homey:app:com.athom.homeyscript',K='runCodeWithArgReturnsString_v2';
+  for(const t of [C+'/'+C+':'+K,C+'/'+K]){const r=await fetch(lvBase()+'/api/manager/flow/flowcardaction/'+t+'/run',{method:'POST',headers:lvH(),body:JSON.stringify({args:{code,argument:arg||''}})});
+    if(r.ok){const j=await r.json().catch(()=>({}));return j&&j.returnTokens?j.returnTokens.string:null}if(r.status!==404)throw new Error('fout '+r.status)}return null}
+async function wasPoll(){if(LV.ok){try{const s=await hsRun("const v=await Homey.logic.getVariables();return JSON.stringify({w:!!(v['"+WAS.V.w+"']||{}).value,d:!!(v['"+WAS.V.d+"']||{}).value})");
+    if(s){const j=JSON.parse(s);WAS.w=j.w;WAS.d=j.d;wasAuto();nuDraw()}}catch(e){console.warn('was',e)}}
+  setTimeout(wasPoll,LV.ok?60e3:20e3)}
+function wasClear(k){WAS[k]=false;nuBar._k='';nuDraw();hsRun("await Homey.logic.updateVariable({id:args[0],variable:{value:false}});return 'ok'",WAS.V[k]).catch(()=>{})}
+// weer aan het werk = melding weg
+function wasAuto(){const p=sonCap('683a0388-5b84-441b-bc6a-8642ccafcc52','measure_power'),st=String(sonCap('57ff0b02-c4c8-44cc-963a-71da0c7102b3','samsung_dryer_current_job_state')||'');
+  if(WAS.w&&p>20)wasClear('w');if(WAS.d&&/dry|run|cool|wrinkle|start/i.test(st))wasClear('d')}
+{const _u=xaUrgent;xaUrgent=function(){const o=_u();if(WAS.w)o.push(['i','🫧 Was is klaar, ophangen!','w']);if(WAS.d)o.push(['i','🌀 Droger is klaar','d']);return o}}
+setTimeout(wasPoll,5000);
 </script></body></html>
