@@ -1545,14 +1545,14 @@ const evTxt=e=>(e.hd?'Hele dag':hm(e.s))+' · '+e.t;
 #xaag .e{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eef1f0}#xaag .e b{min-width:72px;font-variant-numeric:tabular-nums}#xaag .e i{display:inline-block;width:8px;height:8px;border-radius:9px;margin-right:6px}
 #xaag .x{margin-top:12px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}
 #xass{position:fixed;inset:0;z-index:95;background:#0b1018;overflow:hidden;opacity:0;transition:opacity 1.2s;color:#fff;font-family:system-ui,sans-serif}#xass[hidden]{display:none}#xass.in{opacity:1}
-#xass .ph{position:absolute;inset:-4%;background:center/cover no-repeat;opacity:0;transition:opacity 2s}#xass .ph.on{opacity:1}#xass .ph.on,#xass .ph.out{animation:xakb 16s linear forwards}
+#xass .ph{position:absolute;inset:-4%;opacity:0;transition:opacity 2s}#xass .ph::before{content:'';position:absolute;inset:-6%;background:var(--img) center/cover no-repeat;filter:blur(28px) brightness(.55) saturate(1.1)}#xass .ph::after{content:'';position:absolute;inset:4%;background:var(--img) center/contain no-repeat}#xass .ph.on{opacity:1}#xass .ph.on,#xass .ph.out{animation:xakb 16s linear forwards}
 @keyframes xakb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.09) translate(-1.5%,-1%)}}
 #xass .sh{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,0) 45%),linear-gradient(to bottom,rgba(0,0,0,.35),rgba(0,0,0,0) 25%)}
 #xass .nofoto{position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,#2c5d4c,#0b1018 70%);animation:xagr 30s ease-in-out infinite alternate}@keyframes xagr{to{filter:hue-rotate(40deg)}}
 #xass .clk{position:absolute;left:4vw;bottom:calc(5vh + var(--alh,0px));transition:bottom .6s}#xass .clk b{display:block;font:300 clamp(64px,13vw,160px)/1 system-ui,sans-serif;letter-spacing:-.02em;text-shadow:0 2px 20px rgba(0,0,0,.4)}
 #xass .clk span{font-size:clamp(16px,2.4vw,26px);opacity:.92;text-shadow:0 1px 8px rgba(0,0,0,.5)}
 #xass .ag{position:absolute;right:4vw;bottom:calc(5vh + var(--alh,0px));transition:bottom .6s;max-width:40vw;text-align:right;font-size:clamp(14px,1.9vw,22px);line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.6)}#xass .ag small{display:block;opacity:.75;font-size:.75em;text-transform:uppercase;letter-spacing:.08em}
-#xass .al{z-index:3;position:absolute;left:0;right:0;bottom:0;display:flex;gap:28px;align-items:center;padding:14px 4vw;background:rgba(190,40,32,.93);font-weight:600;font-size:clamp(15px,1.9vw,21px);overflow:hidden;white-space:nowrap}#xass .al:empty{display:none}
+#xass .al{z-index:3;position:absolute;left:0;right:0;bottom:0;display:flex;gap:28px;align-items:center;padding:14px 4vw 18px;color:#ff5d4f;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 14px rgba(0,0,0,.6);font-weight:700;font-size:clamp(16px,2vw,23px);overflow:hidden;white-space:nowrap}#xass .al:empty{display:none}
 #xass .al span+span::before{content:'•';margin-right:28px;opacity:.6}
 #xass .dim{z-index:2;position:absolute;inset:0;background:#000;opacity:0;transition:opacity 2s;pointer-events:none}`;document.head.appendChild(st)}
 // ---- bovenbalk: weer + eerstvolgende afspraak ----
@@ -1597,7 +1597,7 @@ async function xaFoto(){clearTimeout(phT);if(!XA.on)return;
   try{if(!XA.ids.length&&XA.url&&XA.key){const j=await (await fetch(gas('a=fotos'))).json();XA.ids=shuffle(j.ids||[]);XA.idx=0}
     if(XA.ids.length){const id=XA.ids[XA.idx++%XA.ids.length];if(XA.idx>=XA.ids.length){XA.idx=0;shuffle(XA.ids)}
       const j=await (await fetch(gas('a=foto&w='+Math.min(2000,Math.round(innerWidth*devicePixelRatio))+'&id='+encodeURIComponent(id)))).json();
-      if(j.img&&XA.on){const im=new Image();im.onload=()=>{const nx=PH[1-phA];nx.style.backgroundImage='url('+j.img+')';nx.className='ph';void nx.offsetWidth;nx.className='ph on';PH[phA].className='ph out';phA=1-phA};im.src=j.img}}}
+      if(j.img&&XA.on){const im=new Image();im.onload=()=>{const nx=PH[1-phA];nx.style.setProperty('--img','url('+j.img+')');nx.className='ph';void nx.offsetWidth;nx.className='ph on';PH[phA].className='ph out';phA=1-phA};im.src=j.img}}}
   catch(e){}phT=setTimeout(xaFoto,12000)}
 function xaStart(){if(XA.on)return;XA.on=true;SS.hidden=false;requestAnimationFrame(()=>SS.classList.add('in'));xaSS();xaFoto()}
 function xaStop(){XA.on=false;clearTimeout(phT);SS.classList.remove('in');setTimeout(()=>{if(!XA.on)SS.hidden=true},1200);XA.last=Date.now()}
@@ -1609,7 +1609,7 @@ XA.afval={today:[],tomorrow:[]};
 const AFV={GFT:'GFT',PMD:'PMD',PAPIER:'Papier',REST:'Rest',PLASTIC:'Plastic',GLAS:'Glas',TEXTIEL:'Textiel',GROF:'Grof afval',SNOEI:'Snoeiafval',KCA:'Chemisch afval',KERSTBOOM:'Kerstboom'};
 async function afvCond(when,type){const body=JSON.stringify({args:{when,trash_type:type}}),h={method:'POST',headers:lvH(),body};
   const id='homey:app:com.trashchecker:days_to_collect';
-  for(const u of ['/api/manager/flow/flowcardcondition/'+encodeURIComponent(id)+'/run','/api/manager/flow/flowcardcondition/homey:app:com.trashchecker/days_to_collect/run']){
+  for(const u of ['/api/manager/flow/flowcardcondition/homey:app:com.trashchecker/days_to_collect/run','/api/manager/flow/flowcardcondition/'+encodeURIComponent(id)+'/run']){
     try{const r=await fetch(lvBase()+u,h);if(!r.ok)continue;const j=await r.json();return j===true||(j&&j.result===true)}catch(e){}}
   return null}
 async function xaAfval(){if(LV.ok){const o={today:[],tomorrow:[]};
@@ -1627,4 +1627,51 @@ function xaTopAfv(){let c=document.getElementById('xaafv');const t=afvTxt();
 {const _u=xaUrgent;xaUrgent=function(){return _u().concat(afvTxt().map(t=>['w',t]))}}
 setTimeout(xaAfval,4000);setInterval(xaTopAfv,10*60e3);
 
+
+// ===================== MUZIEK (Sonos via Homey: favorieten, afspeellijsten, bediening) =====================
+const SONOS={'Woonkamer':'dd06a628-1db9-42c0-8472-5b464e823a5b','Keuken':'01748ded-780f-4846-8f48-1f07d58ecaf1','Eetkamer':'01748ded-780f-4846-8f48-1f07d58ecaf1',
+  'Gang':'0a6a5f45-ca98-414f-b259-46234ffde37f','Badkamer':'4012249b-bc79-4c44-97fe-a23a8a5a089d','Slaapkamer achter':'60aaec17-8555-46a7-ba9c-85cb78602c61','Overloop zolder':'87e9d2df-74aa-4f30-9676-ecf06c57f838'};
+const MU={fav:{},pl:{}};
+const sonDev=id=>(LV.all||[]).find(h=>h.id===id);
+const sonCap=(id,k)=>{const h=sonDev(id),c=h&&h.capabilitiesObj&&h.capabilitiesObj[k];return c?c.value:undefined};
+async function sonAuto(dev,card,arg){for(const t of ['flowcardaction','action']){try{
+  const r=await fetch(lvBase()+'/api/manager/flow/'+t+'/homey:device:'+dev+'/'+card+'/autocomplete?name='+arg+'&query=',{headers:lvH()});if(r.ok)return await r.json()}catch(e){}}return null}
+async function sonRun(dev,card,args){const r=await fetch(lvBase()+'/api/manager/flow/flowcardaction/homey:device:'+dev+'/'+card+'/run',{method:'POST',headers:lvH(),body:JSON.stringify({args})});if(!r.ok)throw new Error('fout '+r.status);return true}
+const sonSet=(dev,cap,val)=>fetch(lvBase()+'/api/manager/devices/device/'+dev+'/capability/'+cap,{method:'PUT',headers:lvH(),body:JSON.stringify({value:val})}).then(()=>setTimeout(lvPoll,500)).catch(()=>toast('⚠️ Sonos reageert niet'));
+const soort=f=>{const d=(f.description||'').toLowerCase();return /spotify/.test(d)?'Spotify':/tunein|radio|station/.test(d)?'Radio':'Lokaal & overig'};
+{const st=document.createElement('style');st.textContent=`
+.musec{margin-top:4px}.mu-now{display:flex;gap:10px;align-items:center;background:#f2f5f4;border-radius:14px;padding:10px}.mu-now .ti{flex:1;min-width:0}.mu-now .ti b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mu-now .ti small{color:#5a6964}
+.mu-btns{display:flex;gap:8px;margin:8px 0}.mu-btns button{flex:1;border:0;border-radius:12px;padding:12px;font-size:18px;background:#e3e9e6}.mu-btns .pick{flex:2;font-size:15px;font-weight:600;background:#1f7a5c;color:#fff}
+.mu-vol{display:flex;gap:8px;align-items:center}.mu-vol input{flex:1}
+#mupick{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}#mupick[hidden]{display:none}
+#mupick .bx{background:#fff;color:#14201c;border-radius:20px;padding:18px;width:min(720px,100%);max-height:88vh;overflow:auto;font:15px system-ui,sans-serif}
+#mupick h2{margin:0 0 8px;font-size:22px}#mupick .tabs{display:flex;gap:6px;margin:8px 0 12px;flex-wrap:wrap}#mupick .tabs button{border:0;border-radius:99px;padding:8px 14px;background:#e3e9e6;font-weight:600}#mupick .tabs button[aria-pressed=true]{background:#1f7a5c;color:#fff}
+#mupick .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}#mupick .t{border:0;border-radius:14px;background:#f2f5f4;padding:10px;text-align:left;display:flex;flex-direction:column;gap:6px;font:600 14px system-ui,sans-serif;color:#14201c}
+#mupick .t img,#mupick .t .ph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:#dfe6e3;display:grid;place-items:center;font-size:34px}#mupick .t small{font-weight:400;color:#5a6964}
+#mupick .x{margin-top:12px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}`;document.head.appendChild(st)}
+const muP=document.createElement('div');muP.id='mupick';muP.hidden=true;document.body.appendChild(muP);muP.onclick=e=>{if(e.target===muP)muP.hidden=true};
+async function muOpen(room,dev){muP.hidden=false;muP.innerHTML='<div class="bx"><h2>🎵 Muziek · '+xaEsc(room)+'</h2><p>Favorieten ophalen…</p></div>';
+  if(!MU.fav[dev]){MU.fav[dev]=(await sonAuto(dev,'cloud_play_sonos_favorite','favorite'))||[];MU.pl[dev]=(await sonAuto(dev,'cloud_play_sonos_playlist','playlist'))||[]}
+  const items=MU.fav[dev].map(f=>({f,k:soort(f),card:'cloud_play_sonos_favorite',arg:'favorite'})).concat(MU.pl[dev].map(f=>({f,k:'Afspeellijsten',card:'cloud_play_sonos_playlist',arg:'playlist'})));
+  const tabs=['Alles',...['Spotify','Radio','Afspeellijsten','Lokaal & overig'].filter(k=>items.some(i=>i.k===k))];let cur='Alles';
+  const draw=()=>{const L=items.filter(i=>cur==='Alles'||i.k===cur);
+    muP.innerHTML='<div class="bx"><h2>🎵 Muziek · '+xaEsc(room)+'</h2><div class="tabs">'+tabs.map(t=>'<button aria-pressed="'+(t===cur)+'" data-tab="'+t+'">'+t+'</button>').join('')+'</div>'+
+      (L.length?'<div class="grid">'+L.map((i,n)=>'<button class="t" data-n="'+items.indexOf(i)+'">'+(i.f.image?'<img src="'+xaEsc(String(i.f.image).replace(/^http:/,'https:'))+'" alt="" onerror="this.outerHTML=\'<span class=ph>🎵</span>\'">':'<span class="ph">'+(i.k==='Radio'?'📻':i.k==='Spotify'?'🟢':'🎵')+'</span>')+xaEsc(i.f.name)+'<small>'+xaEsc(i.f.description||i.k)+'</small></button>').join('')+'</div>'
+        :'<p>Niks gevonden. Zet in de Sonos-app zenders, Spotify-lijsten of albums bij <b>Mijn Sonos</b>, dan verschijnen ze hier.</p>')+'<button class="x">Sluiten</button></div>';
+    muP.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{cur=b.dataset.tab;draw()});muP.querySelector('.x').onclick=()=>muP.hidden=true;
+    muP.querySelectorAll('[data-n]').forEach(b=>b.onclick=async()=>{const i=items[+b.dataset.n],a={};a[i.arg]=i.f;
+      try{await sonRun(dev,i.card,a);toast('🎵 '+i.f.name+' speelt in '+room);muP.hidden=true;setTimeout(lvPoll,1500)}catch(e){toast('⚠️ Afspelen lukte niet ('+e.message+')')}})};
+  draw()}
+function muSection(room,dev){const pl=!!sonCap(dev,'speaker_playing'),tr=sonCap(dev,'speaker_track'),ar=sonCap(dev,'speaker_artist'),al=sonCap(dev,'speaker_album'),vol=sonCap(dev,'volume_set');
+  const d=document.createElement('div');d.className='sec musec';
+  d.innerHTML='<h3>Muziek</h3><div class="mu-now"><span style="font-size:26px">'+(pl?'🔊':'🔈')+'</span><div class="ti"><b>'+xaEsc(tr||'Niks aan het spelen')+'</b><small>'+xaEsc([ar,al].filter(Boolean).join(' · ')||(pl?'':'Kies hieronder wat je wilt horen'))+'</small></div></div>'+
+    '<div class="mu-btns"><button data-m="prev" aria-label="Vorige">⏮</button><button data-m="pp" aria-label="Afspelen/pauze">'+(pl?'⏸':'▶')+'</button><button data-m="next" aria-label="Volgende">⏭</button><button class="pick" data-m="pick">Kies muziek</button></div>'+
+    (vol!=null?'<div class="mu-vol"><span>🔉</span><input type="range" min="0" max="100" value="'+Math.round(vol*100)+'" aria-label="Volume"><span>🔊</span></div>':'');
+  d.querySelector('[data-m=pp]').onclick=()=>sonSet(dev,'speaker_playing',!pl);d.querySelector('[data-m=prev]').onclick=()=>sonSet(dev,'speaker_prev',true);
+  d.querySelector('[data-m=next]').onclick=()=>sonSet(dev,'speaker_next',true);d.querySelector('[data-m=pick]').onclick=()=>muOpen(room,dev);
+  const v=d.querySelector('.mu-vol input');if(v){let tm;v.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>sonSet(dev,'volume_set',v.value/100),250)}}
+  return d}
+{const _rr=rpRender;rpRender=function(){_rr.apply(this,arguments);try{if(!rpOpen||!LV.ok)return;const room=inside&&inside.n,dev=SONOS[room];if(!dev||!sonDev(dev))return;
+  rp.querySelectorAll('.sec').forEach(s=>{if(/sonos|muziek/i.test((s.querySelector('h3')||{}).textContent||''))s.remove()});
+  const after=rp.querySelector('.rps');(after?after:rp.firstChild).after(muSection(room,dev))}catch(e){console.warn(e)}}}
 </script></body></html>
