@@ -1218,13 +1218,14 @@ const PANELS={keuken:{t:'Keuken & Eetkamer',rooms:['Keuken','Eetkamer'],
   info:[['Tuindeur','Dicht','ok'],['Beweging','Net nog'],['Tablet','37 %']]}};
 let rpCur=null,rpOpen=true;
 // welke apparaten horen bij welke ruimte (naam zoals in het model)
-const RDEV={'Woonkamer':['Woonkamer','Lichtkoof woonkamer','Spots woonkamer','Thermostaat'],'Gang':['Gang','Voordeur'],
- 'Toilet':['Toilet'],'Kantoor':['Kantoor'],'Garage':['Garage','Garage buiten','Camera garage','Deur garage straatzijde','Deur garage tuinzijde'],
- 'Tuin':['Spots garage achter','Grondspots achtertuin','Lamp poort'],'Veranda':['Hanglampen buitenkeuken','Wandlampen veranda'],'Zijtuin':['Overstek tuin','Tuinspots zijtuin'],
+const RDEV={'Woonkamer':['Woonkamer','Lichtkoof woonkamer','Spots woonkamer','Thermostaat','Schuifpui'],'Gang':['Gang','Voordeur'],
+ 'Toilet':['Toilet'],'Kantoor':['Kantoor','Achterdeur'],'Garage':['Garage','Garage buiten','Camera garage','Deur garage straatzijde','Deur garage tuinzijde'],
+ 'Tuin':['Spots garage achter','Grondspots achtertuin','Lamp poort','Schuurdeur'],'Veranda':['Hanglampen buitenkeuken','Wandlampen veranda'],'Zijtuin':['Overstek tuin','Tuinspots zijtuin'],
  'Voortuin':['Overkapping voordeur','WCD voordeur','Camera voorzijde'],'Overloop':['CO₂-sensor'],'Slaapkamer voor':['Slaapkamer','Raam Iva'],'Slaapkamer achter':['Slaapkamer 2','Raam R&M'],
  'Lio':['Spots Lio','Babyfoon Lio','Raam1 Lio','Raam2 Lio'],'Emi':['Spots Emi','Babyfoon Emi','Raam Emi'],'Overloop zolder':['Spots overloop zolder','Raam1 overloop zolder','Raam2 overloop zolder']};
 // extra Homey-apparaten die niet in het 3D-model staan
-const XL=[{n:'Lamp poort',n0:'Lamp poort',t:'light',on:false,x:1},{n:'WCD voordeur',n0:'WCD voordeur',t:'light',on:false,x:1}];
+const XL=[{n:'Lamp poort',n0:'Lamp poort',t:'light',on:false,x:1},{n:'WCD voordeur',n0:'WCD voordeur',t:'light',on:false,x:1},
+  {n:'Schuifpui',n0:'Schuifpui',t:'door',v:'Dicht',x:1},{n:'Tuindeur',n0:'Tuindeur',t:'door',v:'Dicht',x:1},{n:'Achterdeur',n0:'Achterdeur',t:'door',v:'Dicht',x:1},{n:'Schuurdeur',n0:'Schuurdeur',t:'door',v:'Dicht',x:1}];
 const devOf=room=>(RDEV[room]||[]).map(n=>D.concat(XL).find(d=>(d.n0||d.n)===n)).filter(Boolean);
 function rpFor(room){const key=Object.keys(PANELS).find(k=>PANELS[k].rooms.includes(room));rpCur=key?PANELS[key]:room?{gen:true,t:room}:null;rpOpen=true;rpRender()}
 function rpGen(){const P=rpCur,ds=devOf(P.t),L=ds.filter(d=>d.t==='light'),O=ds.filter(d=>d.t!=='light'),anyOn=L.some(d=>d.on);
@@ -1585,7 +1586,7 @@ const SS=document.createElement('div');SS.id='xass';SS.hidden=true;
 SS.innerHTML='<div class="nofoto"></div><div class="ph"></div><div class="ph"></div><div class="sh"></div><div class="al"></div><div class="clk"><b></b><span></span></div><div class="ag"></div><div class="dim"></div>';
 document.body.appendChild(SS);const PH=[...SS.querySelectorAll('.ph')];let phA=0,phT=null;
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-let xaUrgent=function(){const o=[];D.forEach(d=>{if(d.t==='door'&&d.v==='Open')o.push(['w',(/deur|pui/i.test(d.n||d.n0)?'🚪 ':'🪟 ')+(d.n||d.n0)+' open'])});
+let xaUrgent=function(){const o=[];D.concat(XL).forEach(d=>{if(d.t==='door'&&d.v==='Open'&&d.n0!=='Deur garage tuinzijde')o.push(['w',(/deur|pui/i.test(d.n||d.n0)?'🚪 ':'🪟 ')+String(d.n||d.n0).replace(/^deurcontact\s+(\S)/i,(m,c)=>c.toUpperCase())+' open'])});
   (LV.all||[]).forEach(h=>{const c=h.capabilitiesObj||{},b=c.measure_battery&&c.measure_battery.value;if(typeof b==='number'&&b<=10)o.push(['','🔋 '+h.name+' '+b+'%']);
     if(c.alarm_water&&c.alarm_water.value)o.push(['','💧 Lekkage: '+h.name]);if(c.alarm_smoke&&c.alarm_smoke.value)o.push(['','🔥 Rook: '+h.name])});return o};
 function xaSS(){if(!XA.on)return;const n=new Date(),w=XA.wx;SS.querySelector('.clk b').textContent=hm(n);
