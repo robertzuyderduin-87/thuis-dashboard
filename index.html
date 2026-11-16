@@ -2061,6 +2061,10 @@ function jrOpen(){let h='<div class="bx"><h2>🎂 Verjaardagen</h2>';const L=jrN
   if(v.length)o.push(['b','🎂 Vandaag jarig: '+v.map(jrTxt).join(', ')]);if(m.length)o.push(['b','🎂 Morgen jarig: '+m.map(jrTxt).join(', ')]);return o}}
 {const st=document.createElement('style');st.textContent='#nubar .bd{flex:none;border-radius:99px;padding:6px 12px;background:#5a2a43;color:#ffd6e8;font:600 14px system-ui,sans-serif}';document.head.appendChild(st)}
 setTimeout(jrLoad,3000);setInterval(jrChip,30*60e3);
+// verjaardag in de zwarte balk aantikken = verjaardagen openen (ook vanuit de fotoshow)
+nuBar.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.bd')){e.stopPropagation();if(XA.on&&typeof xaStop==='function')xaStop();jrOpen()}});
+{const st=document.createElement('style');st.textContent='#nubar .bd{cursor:pointer}';document.head.appendChild(st)}
+{const c0=jrChip;jrChip=function(){c0.apply(this,arguments);const c=document.getElementById('xajr');if(c&&!c._sp){c._sp=1;c.onclick=e=>{e.stopPropagation();jrOpen()}}}}
 
 // ===================== CAMERA'S: beeld uit Homey (of een eigen stream-adres) =====================
 {const st=document.createElement('style');st.textContent=`
