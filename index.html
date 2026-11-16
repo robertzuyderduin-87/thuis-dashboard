@@ -2075,16 +2075,31 @@ nuBar.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.bd'))
 .feed.big{aspect-ratio:auto;max-height:70vh}.feed.big img{object-fit:contain}`;document.head.appendChild(st)}
 const CAM={t:null,url:null,dev:null};
 const camOwn=d=>{try{return localStorage.getItem('cam_url_'+(d.n0||d.n))||''}catch(e){return ''}};
-const camHomey=d=>{if(!LV.ok||!d.hid||!LV.all)return null;const h=LV.all.find(x=>x.id===d.hid);const im=h&&(h.images||[]).map(i=>i.imageObj||i).find(o=>o&&o.url);return im||null};
+const camDevH=d=>LV.all&&d.hid?LV.all.find(x=>x.id===d.hid):null;
+const camApp=d=>{const h=camDevH(d);if(!h)return '';return String(h.driverId||h.driverUri||'').replace(/^homey:app:/,'').replace(/:.*$/,'')};
+CAM.imgs=null;
+async function camImgs(){try{const r=await fetch(lvBase()+'/api/manager/images/image/',{headers:lvH(),cache:'no-store'});if(r.ok)CAM.imgs=Object.values(await r.json())}catch(e){}return CAM.imgs}
+const camHomey=d=>{if(!LV.ok||!d.hid)return null;const h=camDevH(d);
+  const L=((h&&h.images)||[]).map(i=>{const o=i.imageObj||i;return o&&(o.url?o:(o.imageId||i.imageId)?{url:'/api/image/'+(o.imageId||i.imageId),lastUpdated:o.lastUpdated}:null)}).filter(Boolean);
+  if(L.length)return L[0];const m=(CAM.imgs||[]).find(o=>o&&String(o.ownerUri||'').includes(d.hid));return m?{url:m.url||'/api/image/'+m.id,lastUpdated:m.lastUpdated}:null};
 function camStop(){clearTimeout(CAM.t);CAM.t=null;if(CAM.url){URL.revokeObjectURL(CAM.url);CAM.url=null}CAM.dev=null}
-async function camShot(d,img,inf){if(CAM.dev!==d)return;const im=camHomey(d);
-  if(im){try{const r=await fetch(lvBase()+im.url+(im.url.includes('?')?'&':'?')+'t='+Date.now(),{headers:{Authorization:'Bearer '+LV.key},cache:'no-store'});if(!r.ok)throw new Error('fout '+r.status);
-      const u=URL.createObjectURL(await r.blob());img.src=u;if(CAM.url)URL.revokeObjectURL(CAM.url);CAM.url=u;img.hidden=false;img.parentNode.querySelector('p')?.remove();
-      const lu=im.lastUpdated?new Date(im.lastUpdated):new Date();inf.innerHTML='<span class="dot ok"></span>Beeld uit Homey · bijgewerkt '+lu.toLocaleTimeString('nl-NL')}
-    catch(e){inf.innerHTML='<span class="dot"></span>Beeld ophalen lukte niet ('+xaEsc(e.message)+')'}}
-  if(CAM.dev===d)CAM.t=setTimeout(()=>camShot(d,img,inf),2500)}
-openCam=function(d){camStop();CAM.dev=d;const own=camOwn(d),hm=camHomey(d);
-  cvb.innerHTML='<h2>'+xaEsc(d.n)+'</h2><div class="ci"><span class="dot'+(own||hm?' ok':'')+'"></span><span>'+(own?'Eigen stream':hm?'Beeld uit Homey ophalen…':LV.ok?'Deze camera stuurt geen beeld naar Homey':'Niet gekoppeld aan Homey')+'</span></div>'+
+function camAll(d){if(!LV.ok||!d.hid)return [];const h=camDevH(d),out=[];
+  ((h&&h.images)||[]).forEach(i=>{const o=i.imageObj||i;if(!o)return;const u=o.url||((o.imageId||i.imageId)?'/api/image/'+(o.imageId||i.imageId):null);if(u)out.push({url:u,lastUpdated:o.lastUpdated,k:'dev:'+(i.id||'')})});
+  (CAM.imgs||[]).filter(o=>o&&String(o.ownerUri||'').includes(d.hid)).forEach(m=>out.push({url:m.url||'/api/image/'+m.id,lastUpdated:m.lastUpdated,k:'mgr:'+m.id}));
+  const seen=new Set(),L=[];out.forEach(c=>{[c.url+(c.url.includes('?')?'&':'?')+'t=',c.url].forEach((u,j)=>{if(!seen.has(u)){seen.add(u);L.push({...c,u,bust:j===0})}})});return L}
+async function camShot(d,img,inf){if(CAM.dev!==d)return;const L=camAll(d);let ok=false;const errs=[];
+  const order=CAM.good!=null&&L[CAM.good]?[CAM.good,...L.keys()].filter((v,i,a)=>a.indexOf(v)===i):[...L.keys()];
+  for(const i of order){const c=L[i];if(CAM.dev!==d)return;
+    try{const r=await fetch(lvBase()+c.u+(c.bust?Date.now():''),{headers:{Authorization:'Bearer '+LV.key},cache:'no-store'});
+      if(!r.ok){let t='';try{t=(await r.text()).replace(/\s+/g,' ').slice(0,90)}catch(e){}errs.push(r.status+(t?' '+t:''));continue}
+      const bl=await r.blob();if(!bl.size||!/^image\//.test(bl.type||'image/')){errs.push('leeg beeld');continue}
+      const u=URL.createObjectURL(bl);img.src=u;if(CAM.url)URL.revokeObjectURL(CAM.url);CAM.url=u;img.hidden=false;img.parentNode.querySelector('p')?.remove();CAM.good=i;ok=true;
+      inf.innerHTML='<span class="dot ok"></span>Beeld uit Homey · '+new Date().toLocaleTimeString('nl-NL');break}
+    catch(e){errs.push(e.message)}}
+  if(!ok)inf.innerHTML='<span class="dot"></span>Beeld ophalen lukte niet ('+xaEsc(errs[0]||'geen beeld gevonden')+')'+(L.length>1?' <small>· '+L.length+' pogingen</small>':'');
+  if(CAM.dev===d)CAM.t=setTimeout(()=>camShot(d,img,inf),ok?2500:6000)}
+openCam=async function(d,again){camStop();CAM.dev=d;CAM.good=null;if(!again&&LV.ok&&!camOwn(d)){await camImgs()}const own=camOwn(d),hm=camHomey(d),app=camApp(d);
+  cvb.innerHTML='<h2>'+xaEsc(d.n)+'</h2><div class="ci"><span class="dot'+(own||hm?' ok':'')+'"></span><span>'+(own?'Eigen stream':hm?'Beeld uit Homey ophalen…':LV.ok?'Deze camera stuurt geen beeld naar Homey'+(app?' <small>(app: '+xaEsc(app)+')</small>':''):'Niet gekoppeld aan Homey')+'</span></div>'+
     '<div class="feed big">'+(own?'<img alt="Live beeld" src="'+xaEsc(own)+'">':'<img alt="Camerabeeld" hidden><p>'+(hm?'Even geduld…':'Geen beeld beschikbaar.<br>Tik op ⚙️ Stream-adres als je camera een eigen link heeft.')+'</p>')+'</div>'+
     '<div class="cb"><button data-f>⛶ Groot</button><button data-s>⚙️ Stream-adres</button></div>'+
     '<div class="cs"><input placeholder="http://192.168.178.x/… (leeg = beeld uit Homey)" value="'+xaEsc(own)+'"><button>Opslaan</button></div><button id="cvx">Sluiten</button>';
