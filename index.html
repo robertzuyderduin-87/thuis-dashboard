@@ -2061,4 +2061,34 @@ function jrOpen(){let h='<div class="bx"><h2>🎂 Verjaardagen</h2>';const L=jrN
   if(v.length)o.push(['b','🎂 Vandaag jarig: '+v.map(jrTxt).join(', ')]);if(m.length)o.push(['b','🎂 Morgen jarig: '+m.map(jrTxt).join(', ')]);return o}}
 {const st=document.createElement('style');st.textContent='#nubar .bd{flex:none;border-radius:99px;padding:6px 12px;background:#5a2a43;color:#ffd6e8;font:600 14px system-ui,sans-serif}';document.head.appendChild(st)}
 setTimeout(jrLoad,3000);setInterval(jrChip,30*60e3);
+
+// ===================== CAMERA'S: beeld uit Homey (of een eigen stream-adres) =====================
+{const st=document.createElement('style');st.textContent=`
+#cvb .ci{display:flex;align-items:center;gap:8px;font-size:13px;color:#5a6964;margin:-4px 0 10px}#cvb .ci .dot{width:8px;height:8px;border-radius:9px;background:#c33;flex:none}#cvb .ci .dot.ok{background:#1f7a5c}
+#cvb .cb{display:flex;gap:8px;margin-bottom:10px}#cvb .cb button{flex:1;border:0;border-radius:12px;padding:11px;background:#e3e9e6;font:600 14px system-ui,sans-serif;color:#14201c}
+#cvb .cs{display:none;gap:6px;margin-bottom:10px}#cvb .cs.on{display:flex}#cvb .cs input{flex:1;min-width:0;padding:10px;border:1px solid #ccd5d1;border-radius:10px;font:14px system-ui,sans-serif}
+#cvb .cs button{border:0;border-radius:10px;padding:10px 14px;background:#1f7a5c;color:#fff;font-weight:600}
+.feed.big{aspect-ratio:auto;max-height:70vh}.feed.big img{object-fit:contain}`;document.head.appendChild(st)}
+const CAM={t:null,url:null,dev:null};
+const camOwn=d=>{try{return localStorage.getItem('cam_url_'+(d.n0||d.n))||''}catch(e){return ''}};
+const camHomey=d=>{if(!LV.ok||!d.hid||!LV.all)return null;const h=LV.all.find(x=>x.id===d.hid);const im=h&&(h.images||[]).map(i=>i.imageObj||i).find(o=>o&&o.url);return im||null};
+function camStop(){clearTimeout(CAM.t);CAM.t=null;if(CAM.url){URL.revokeObjectURL(CAM.url);CAM.url=null}CAM.dev=null}
+async function camShot(d,img,inf){if(CAM.dev!==d)return;const im=camHomey(d);
+  if(im){try{const r=await fetch(lvBase()+im.url+(im.url.includes('?')?'&':'?')+'t='+Date.now(),{headers:{Authorization:'Bearer '+LV.key},cache:'no-store'});if(!r.ok)throw new Error('fout '+r.status);
+      const u=URL.createObjectURL(await r.blob());img.src=u;if(CAM.url)URL.revokeObjectURL(CAM.url);CAM.url=u;img.hidden=false;img.parentNode.querySelector('p')?.remove();
+      const lu=im.lastUpdated?new Date(im.lastUpdated):new Date();inf.innerHTML='<span class="dot ok"></span>Beeld uit Homey · bijgewerkt '+lu.toLocaleTimeString('nl-NL')}
+    catch(e){inf.innerHTML='<span class="dot"></span>Beeld ophalen lukte niet ('+xaEsc(e.message)+')'}}
+  if(CAM.dev===d)CAM.t=setTimeout(()=>camShot(d,img,inf),2500)}
+openCam=function(d){camStop();CAM.dev=d;const own=camOwn(d),hm=camHomey(d);
+  cvb.innerHTML='<h2>'+xaEsc(d.n)+'</h2><div class="ci"><span class="dot'+(own||hm?' ok':'')+'"></span><span>'+(own?'Eigen stream':hm?'Beeld uit Homey ophalen…':LV.ok?'Deze camera stuurt geen beeld naar Homey':'Niet gekoppeld aan Homey')+'</span></div>'+
+    '<div class="feed big">'+(own?'<img alt="Live beeld" src="'+xaEsc(own)+'">':'<img alt="Camerabeeld" hidden><p>'+(hm?'Even geduld…':'Geen beeld beschikbaar.<br>Tik op ⚙️ Stream-adres als je camera een eigen link heeft.')+'</p>')+'</div>'+
+    '<div class="cb"><button data-f>⛶ Groot</button><button data-s>⚙️ Stream-adres</button></div>'+
+    '<div class="cs"><input placeholder="http://192.168.178.x/… (leeg = beeld uit Homey)" value="'+xaEsc(own)+'"><button>Opslaan</button></div><button id="cvx">Sluiten</button>';
+  cvEl.classList.add('open');const img=cvb.querySelector('.feed img'),inf=cvb.querySelector('.ci');
+  if(own)img.onerror=()=>{inf.innerHTML='<span class="dot"></span>Eigen stream geeft geen beeld'};else if(hm)camShot(d,img,inf);
+  const cl=()=>{camStop();cvEl.classList.remove('open')};document.getElementById('cvx').onclick=cl;
+  cvb.querySelector('[data-f]').onclick=()=>{const f=cvb.querySelector('.feed');(f.requestFullscreen||f.webkitRequestFullscreen||(()=>{})).call(f)};
+  cvb.querySelector('[data-s]').onclick=()=>cvb.querySelector('.cs').classList.toggle('on');
+  cvb.querySelector('.cs button').onclick=()=>{const v=cvb.querySelector('.cs input').value.trim();try{v?localStorage.setItem('cam_url_'+(d.n0||d.n),v):localStorage.removeItem('cam_url_'+(d.n0||d.n))}catch(e){}openCam(d)}};
+cvEl.onclick=e=>{if(e.target===cvEl){camStop();cvEl.classList.remove('open')}};
 </script></body></html>
