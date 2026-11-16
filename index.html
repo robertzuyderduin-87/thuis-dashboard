@@ -118,10 +118,10 @@ const ZA=-4.225,ZR=ZA-8.695,XR=HX+5.50,H0=2.77,H1=2.6,AT=2.54,AF=2.87,OT=2.45,EY
 // levels relative to the floor inside the house (0): garage floor -13, back garden -5, sidewalk -17.5, wall foot G0
 const G0=-.2;
 const F=[new T.Group(),new T.Group(),new T.Group()],E=new T.Group(),LG=new T.Group();S.add(...F,E,LG);LG.visible=false;
-flat(120,120,7,-6,grassT(),3.5,-.085);
+flat(120,120,7,-6,grassT(),3.5,-.085).userData.weiland=1;
 // front: front garden 497 deep, then sidewalk and road; side street along the annex
-flat(120,2.2,7,6.07,payT('#8b887f'),1.6,-.175);flat(120,6,7,10.17,payT('#8e5b4c'),1.6,-.2);
-flat(2.6,25.4,XR+1.3,-6.5,payT('#8b887f'),1.6,-.174);flat(5,120,XR+5.1,-6,payT('#8e5b4c'),1.6,-.201);
+flat(120,2.2,7,6.07,payT('#8b887f'),1.6,-.175).userData.street='stoep';flat(120,6,7,10.17,payT('#8e5b4c'),1.6,-.2).userData.street='weg';
+flat(2.6,25.4,XR+1.3,-6.5,payT('#8b887f'),1.6,-.174).userData.street='stoepz';flat(5,120,XR+5.1,-6,payT('#8e5b4c'),1.6,-.201).userData.street='weg';
 flat(1.1,4.97,4.9,2.485,payT('#9a7a6a'),1.4,-.06).userData.room='Voortuin';flat(3.85,.9,.5+1.925,.9,payT('#9a7a6a'),1.4,-.065).userData.room='Voortuin';
 flat(XR-HX,3.4,(HX+XR)/2,ZA+1.7,payT('#45484b'),1.2,-.065).userData.room='Zijtuin';
 flat(HX,11.12,HX/2,-HD-5.56,payT('#7d5646'),1.4,-.05).userData.room='Tuin';
@@ -439,11 +439,11 @@ box(E,.15,.02,OD+.15,XO-.075,2.43,-HD-(OD+.15)/2,WH);box(E,OW,.02,.15,XO+OW/2,2.
   zb2(.84,.85,xl+.03,1.95,-9.375,Math.PI/2);zb2(.84,.36,xl+.03,2.2,-8.025,Math.PI/2);zb2(.74,.65,4.47,2.05,zb+.03,0);zb2(.74,.65,5.24,2.05,zb+.03,0);
 }
 // ---- annex: kitchen and dining room in front, garage behind ----
-wall(E,[HX,ZA],[XR,ZA],[0,-1],G0,AT,BR,[OP(E,2.45,1.95,0,2.17,'uitbouw',{door:1,fm:DC,mull:0,rv:RVS},'K2')]);
-wall(E,[XR,ZA],[XR,ZR],[-1,0],G0,AT,BR,[OP(E,2.035,2.60,.58,2.18,'uitbouw',{mull:.55,rv:RVS,sm:SLB},'K1'),OP(E,8.695-.27-2.35,2.35,-.13,2.52,'garage',{door:1,fm:DC,rc:.15,tr:.38,seam:1},'K9')]);
+wall(E,[HX,ZA],[XR,ZA],[0,-1],G0,AT,BR,[OP(E,2.45,1.95,0,2.17,'uitbouw',{door:1,mull:0,rv:RVS},'K2')]);
+wall(E,[XR,ZA],[XR,ZR],[-1,0],G0,AT,BR,[OP(E,2.035,2.60,.58,2.18,'uitbouw',{mull:.55,rv:RVS,sm:SLB},'K1'),OP(E,8.695-.27-2.35,2.35,-.13,2.52,'garage',{door:1,rc:.15,tr:.38,seam:1},'K9')]);
 wall(E,[HX,ZR],[XR,ZR],[0,1],G0,AT,BR);
 wall(E,[HX,ZO],[HX,ZR],[1,0],G0,AT,CL,[OP(E,(ZO-ZR)-1.53-.85,.85,-.13,1.92,'garage',{door:1,fm:DC,tr:.5,leafm:DC},'K8')]);
-wall(E,[HX,ZA-5.535],[XR,ZA-5.535],[0,1],-.13,AT,WH,[],.075);
+{const n0=E.children.length;wall(E,[HX,ZA-5.535],[XR,ZA-5.535],[0,1],-.13,AT,WH,[],.075);E.children.slice(n0).forEach(m=>{m.userData.trim=XR-HX})}
 box(E,XR-HX-.26,.06,5.275,(HX+XR-.26)/2,-.03,ZA-.26-5.275/2,FL).userData.room='Keuken';
 box(E,XR-HX-.26,.06,2.9,(HX+XR-.26)/2,-.16,ZR+.26+1.45,M(0x8f8f8a)).userData.room='Garage';
 // ---- kitchen (measured): column wall 75 deep x 244 wide, Quooker run 288 x 76, hob run 96 x 244, walkway 80 to K1 ----
@@ -1440,10 +1440,10 @@ try{const was=localStorage.getItem('dash_exp');if(was){localStorage.removeItem('
 
 // ===================== REALISTISCHE TEXTURES (vooraf getekend, map tex/; laden na het eerste beeld) =====================
 // Poly Haven-textures: hoeveel keer het plaatje per oude tegel herhaald wordt, zodat stenen/planken even groot blijven
-const TXF={brick:[1.333,.909],roof:[.25,.25],grass:[3,3],clad:[2,1.6],fence:[.889,1.111],deck:[.667,.667],pay:[.8,.8],oak:[.49,.49]};
+const TXF={brick:[1.333,.909],roof:[1,1],grass:[3,3],clad:[2,1.6],fence:[.889,1.111],deck:[.667,.667],pay:[.8,.8],'pay-#8e5b4c':[.566,.566],oak:[.49,.49]};
 const TX2={apply(){const done=new Set();S.traverse(o=>{const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{const t=m&&m.map;
   if(!t||done.has(t)||!t.userData||!t.userData.kind)return;done.add(t);const u=t.userData,nm=u.kind+(u.kind==='pay'?'-'+String(u.p).replace('#','').toLowerCase():'')+'.jpg';
-  const im=new Image();im.onload=()=>{t.image=im;t.anisotropy=8;const f=TXF[u.kind];if(f&&!u.sc){t.repeat.x*=f[0];t.repeat.y*=f[1];u.sc=1}t.needsUpdate=true;if(typeof kick==='function')kick(1,10)};im.onerror=()=>{if(!im._r){im._r=1;im.src=nm+'?v=ph1'}};im.src='tex/'+nm+'?v=ph1'})})}};
+  const im=new Image();im.onload=()=>{t.image=im;t.anisotropy=8;const f=TXF[u.kind+'-'+u.p]||TXF[u.kind];if(f&&!u.sc){t.repeat.x*=f[0];t.repeat.y*=f[1];u.sc=1}t.needsUpdate=true;if(typeof kick==='function')kick(1,10)};im.onerror=()=>{if(!im._r){im._r=1;im.src=nm+'?v=ph3'}};im.src='tex/'+nm+'?v=ph3'})})}};
 TX2.apply();
 // ===================== GEBAKKEN LICHT (Blender/Cycles) =====================
 // Elk onderdeel heeft een vast nummer (bid). huis-bake.glb bevat per nummer de vorm met een 2e UV-set,
@@ -1967,4 +1967,70 @@ function saOpen(){SA.hidden=false;saDraw(1)}
 {const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{saDraw()}catch(e){}return r}}
 // knop in de zwarte balk
 {const _d=nuDraw;nuDraw=function(){_d.apply(this,arguments);try{if(LV.ok&&!nuBar.querySelector('.sob')){const b=document.createElement('button');b.className='sob';b.textContent='🔊 Sonos';b.onclick=saOpen;const sp=nuBar.querySelector('.sp');sp?sp.after(b):nuBar.appendChild(b)}}catch(e){}}}
+
+// binnenmuur keuken/garage liep tot de buitenkant van beide gevels: na het gebakken licht inkorten tot de binnenkant
+{let tries=0;const trim=()=>{let n=0;S.traverse(o=>{const L=o.userData&&o.userData.trim;if(!L||o.userData.trimmed)return;o.scale.x=(L-2*(WT+.005))/L;o.userData.trimmed=1;n++});if(n&&typeof kick==='function')kick(1,10)};
+  const wait=()=>{if((typeof BKX!=='undefined'&&BKX.on)||++tries>40)trim();else setTimeout(wait,250)};wait()}
+
+// ===================== STRAAT: stoep, stoepranden en straat zichtbaar (gras eronder) =====================
+{let tries=0;
+  const go=()=>{const baked=typeof BKX!=='undefined'&&BKX.on,SM=[];
+    // gras-weiland onder de straat leggen
+    S.traverse(o=>{if(o.userData&&o.userData.weiland)o.position.y=-.24});
+    // straat en stoep: gebakken licht was donker (lag onder het gras) -> gewone verlichting
+    const mk=map=>{const m=baked?new T.MeshBasicMaterial({map,color:0xd6d6d6}):M(0xffffff,{map,roughness:.95});SM.push(m);return m};
+    let front=null;
+    S.traverse(o=>{const k=o.userData&&o.userData.street;if(!k)return;const mp=o.material&&o.material.map;o.material=mk(mp);o.castShadow=false;o.receiveShadow=!baked;
+      if(k==='stoepz'&&mp){const r=()=>{if(mp.userData.sc&&!mp.userData.rot){mp.rotation=Math.PI/2;mp.center.set(.5,.5);mp.repeat.set(mp.repeat.y,mp.repeat.x);mp.userData.rot=1;mp.needsUpdate=true}else if(!mp.userData.rot)setTimeout(r,500)};r()}if(k==='stoep')front=o});
+    // voorstoep niet dwars over de zijstraat: tot de hoek inkorten, voorbij de zijstraat een los stuk
+    const xa=-53,xb=XR+2.6,xc=XR+7.6,xd=67;
+    if(front){front.scale.x=(xb-xa)/120;front.position.x=(xa+xb)/2;front.material.map.repeat.x*=(xb-xa)/120;
+      const p=front.clone();p.material=mk(front.material.map.clone());p.material.map.needsUpdate=true;p.material.map.repeat.x=front.material.map.repeat.x/(xb-xa)*(xd-xc);p.scale.x=(xd-xc)/120;p.position.x=(xc+xd)/2;S.add(p)}
+    // stoepranden (grijs beton)
+    const CB=baked?new T.MeshBasicMaterial({color:0x9b9a95}):M(0x9b9a95,{roughness:.9});SM.push(CB);
+    const curb=(w,d,x,z)=>{const b=new T.Mesh(new T.BoxGeometry(w,.06,d),CB);b.position.set(x,-.188,z);S.add(b)};
+    curb(xb-xa,.12,(xa+xb)/2,7.17);curb(xd-xc,.12,(xc+xd)/2,7.17);curb(.12,26.37,xb,-19.2+26.37/2);
+    STREET.mats=SM;if(typeof kick==='function')kick(1,20)};
+  const wait=()=>{if((typeof BKX!=='undefined'&&BKX.on)||++tries>40)go();else setTimeout(wait,250)};wait()}
+const STREET={mats:[]};
+// 's nachts de straat mee laten dimmen
+{const _s=bkSync;bkSync=function(){_s.apply(this,arguments);try{const n=typeof night!=='undefined'&&night;STREET.mats.forEach(m=>{if(m.isMeshBasicMaterial)m.color.setScalar(n?.3:(m.map?.84:.61))})}catch(e){}}}
+
+// stoep loopt mee met de ronding van de klimophaag (hoek tussen haag, voorstoep en zijstoep opvullen)
+{let tries=0;const go=()=>{try{
+  let src=null;S.traverse(o=>{if(o.userData&&o.userData.street==='stoep'&&!src)src=o});
+  const CX=HX,CZ=-.525,R=XR-HX,ZF=4.97,N=32,pos=[],uv=[];
+  const P=(x,z)=>{pos.push(x,-.176,z);uv.push(x/2,-z/2)};
+  for(let i=0;i<N;i++){const f0=i/N*Math.PI/2,f1=(i+1)/N*Math.PI/2;
+    P(XR,ZF);P(CX+R*Math.sin(f1),CZ+R*Math.cos(f1));P(CX+R*Math.sin(f0),CZ+R*Math.cos(f0))}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();
+  let map=null;if(src&&src.material.map){const im=src.material.map.image;map=new T.Texture(im);map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=8;map.needsUpdate=true}
+  const baked=typeof BKX!=='undefined'&&BKX.on,m=baked?new T.MeshBasicMaterial({map,color:0xd6d6d6,side:T.DoubleSide}):M(0xffffff,{map,roughness:.95,side:T.DoubleSide});
+  const mesh=new T.Mesh(g,m);mesh.receiveShadow=!baked;S.add(mesh);if(typeof STREET!=='undefined')STREET.mats.push(m);if(typeof kick==='function')kick(1,10)}catch(e){console.warn('hoekstoep',e)}};
+  const wait=()=>{if(((typeof BKX!=='undefined'&&BKX.on)||++tries>44)&&typeof STREET!=='undefined'&&STREET.mats.length)go();else if(tries<80)setTimeout(wait,250)};wait()}
+
+// ===================== CONTAINERS AAN DE STRAAT OP OPHAALDAG =====================
+// zichtbaar: de avond ervoor vanaf 16:00 en op de ophaaldag tot 13:00, in de kleur van de soort
+// plek: langs de stoeprand voor het raam van de uitbouw (K1), in een rij richting de garagedeur
+const CON={spot:{x:XR+2.05,z:ZA-1.75,dx:0,dz:-1,gap:.72},n:5,grp:null,key:''};
+const CON_COL={'GFT':0x2f7d3a,'Papier':0x1f5fae,'PMD':0x6e7378,'Plastic':0x6e7378,'Rest':0x3a3d40};
+function conBin(col){const g=new T.Group(),baked=typeof BKX!=='undefined'&&BKX.on,mat=c=>baked?new T.MeshBasicMaterial({color:c}):M(c,{roughness:.7});
+  const body=mat(col),dark=mat(0x1c1e20),lid=mat(new T.Color(col).multiplyScalar(.85).getHex());
+  const b=new T.Mesh(new T.CylinderGeometry(.5,.42,1,4,1),body);b.rotation.y=Math.PI/4;b.scale.set(.82,1,1.03);b.position.y=.53;g.add(b);
+  const l=new T.Mesh(new T.BoxGeometry(.6,.05,.76),lid);l.position.set(0,1.05,.02);g.add(l);
+  const h=new T.Mesh(new T.BoxGeometry(.5,.04,.05),dark);h.position.set(0,1.0,-.39);g.add(h);
+  [-.24,.24].forEach(x=>{const w=new T.Mesh(new T.CylinderGeometry(.1,.1,.05,12),dark);w.rotation.z=Math.PI/2;w.position.set(x,.1,-.3);g.add(w)});
+  g.traverse(o=>{if(o.isMesh){o.castShadow=!baked}});return g}
+function conTypes(){const h=new Date().getHours(),a=(typeof XA!=='undefined'&&XA.afval)||{};const t=[];
+  if(a.today&&a.today.length&&h<13)t.push(...a.today);if(a.tomorrow&&a.tomorrow.length&&h>=16)t.push(...a.tomorrow);
+  return t.filter(x=>CON_COL[x]!==undefined)}
+function conDraw(force){const t=conTypes(),key=t.join('+');if(!force&&key===CON.key)return;CON.key=key;
+  if(CON.grp){S.remove(CON.grp);CON.grp=null}if(!t.length){if(typeof kick==='function')kick(1,5);return}
+  const g=new T.Group(),s=CON.spot,rng=(i)=>((Math.sin(i*91.7)*43758.5)%1+1)%1;
+  for(let i=0;i<CON.n;i++){const typ=t[i%t.length],b=conBin(CON_COL[typ]);
+    b.position.set(s.x+s.dx*i*s.gap+(rng(i)-.5)*.08,-.175,s.z+s.dz*i*s.gap+(rng(i+9)-.5)*.08);
+    b.rotation.y=Math.atan2(s.dx,s.dz)+Math.PI/2+(rng(i+3)-.5)*.25;g.add(b)}
+  CON.grp=g;S.add(g);if(typeof kick==='function')kick(1,10)}
+setTimeout(()=>conDraw(1),9000);setInterval(()=>conDraw(),5*60e3);
+{const _a=xaTopAfv;xaTopAfv=function(){_a.apply(this,arguments);try{conDraw()}catch(e){}}}
 </script></body></html>
