@@ -1866,7 +1866,7 @@ function nuDraw(){
     let tr=sonCap(id,'speaker_track')||'',ar=sonCap(id,'speaker_artist')||'';if(/^(HDMI|TV|spdif)$/i.test(tr)){tr='TV-geluid';ar=''}
     mus.push({id,room,pl,tr,ar})});
   const k=JSON.stringify([al,mus.map(m=>[m.id,m.pl,m.tr,m.ar])]);if(nuBar._k===k)return;nuBar._k=k;
-  nuBar.innerHTML=al.map(([t,x,k])=>t==='i'?'<button class="inf" data-clr="'+k+'">'+xaEsc(x)+' <b>✓</b></button>':'<span class="al">'+xaEsc(x)+'</span>').join('')+
+  nuBar.innerHTML=al.map(([t,x,k])=>t==='b'?'<span class="bd">'+xaEsc(x)+'</span>':t==='i'?'<button class="inf" data-clr="'+k+'">'+xaEsc(x)+' <b>✓</b></button>':'<span class="al">'+xaEsc(x)+'</span>').join('')+
     (al.length?'':'<span class="ok">✅ Alles oké</span>')+'<span class="sp"></span>'+
     mus.map(m=>'<span class="mu'+(m.pl?'':' off')+'"><span class="tx" data-r="'+xaEsc(m.room)+'">'+(m.pl?'🔊 ':'⏸ ')+xaEsc(NU_NAME(m.room))+'<small>'+xaEsc([m.tr,m.ar].filter(Boolean).join(' – '))+'</small></span><button data-p="'+m.id+'" aria-label="'+(m.pl?'Pauze':'Afspelen')+'">'+(m.pl?'⏸':'▶')+'</button></span>').join('');
   nuBar.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const id=b.dataset.p,pl=!!sonCap(id,'speaker_playing');if(!pl)NU_LAST[id]=Date.now();sonSet(id,'speaker_playing',!pl);
@@ -2033,4 +2033,32 @@ function conDraw(force){const t=conTypes(),key=t.join('+');if(!force&&key===CON.
   CON.grp=g;S.add(g);if(typeof kick==='function')kick(1,10)}
 setTimeout(()=>conDraw(1),9000);setInterval(()=>conDraw(),5*60e3);
 {const _a=xaTopAfv;xaTopAfv=function(){_a.apply(this,arguments);try{conDraw()}catch(e){}}}
+
+// ===================== VERJAARDAGEN (Google Spreadsheet via het agenda-script) =====================
+const JR={lijst:[],fout:''};
+function jrNext(){const n=new Date(),t0=new Date(n.getFullYear(),n.getMonth(),n.getDate());
+  return JR.lijst.map(p=>{let y=t0.getFullYear();const mk=yy=>{const leap=(yy%4===0&&yy%100!==0)||yy%400===0;return new Date(yy,p.m-1,(p.m===2&&p.d===29&&!leap)?28:p.d)};
+    let d=mk(y);if(d<t0)d=mk(++y);const dd=/†/.test(p.n);return {n:dd?p.n.replace(/\s*†\s*/g,' ').trim():p.n,dd,d,days:Math.round((d-t0)/864e5),age:p.y&&!dd?y-p.y:null}}).sort((a,b)=>a.days-b.days)}
+const jrTxt=p=>(p.dd?'🕯️ ':'')+p.n+(p.age!=null?' ('+p.age+')':'');
+async function jrLoad(){if(XA.url&&XA.key){try{const j=await (await fetch(gas('a=jarig'))).json();JR.lijst=j.lijst||[];JR.fout=j.fout||'';jrChip();if(typeof nuDraw==='function'){nuBar._k='';nuDraw()}}catch(e){JR.fout='Kon de verjaardagen niet ophalen'}}
+  setTimeout(jrLoad,6*3600e3)}
+function jrChip(){const top=document.getElementById('xatop');if(!top)return;let c=document.getElementById('xajr');
+  if(!c){c=document.createElement('button');c.id='xajr';c.onclick=jrOpen;top.appendChild(c)}
+  const L=jrNext(),vl=L.filter(p=>p.days===0),vand=vl.filter(p=>!p.dd),vdd=vl.filter(p=>p.dd),nxt=L.find(p=>p.days>0&&p.days<=14);
+  c.style.display=XA.url?'':'none';c.style.background=vand.length?'#f6c6d9':vdd.length?'#e9e4f2':'';
+  c.textContent=vand.length?'🎂 Vandaag jarig: '+vand.map(jrTxt).join(', ')+(vdd.length?' · '+vdd.map(jrTxt).join(', '):''):vdd.length?'🕯️ Vandaag denken we aan '+vdd.map(p=>p.n).join(', '):nxt?(nxt.dd?'':'🎂 ')+(nxt.days===1?'Morgen':DAG[nxt.d.getDay()]+' '+nxt.d.getDate()+' '+MND[nxt.d.getMonth()])+' · '+jrTxt(nxt):'🎂 Verjaardagen'}
+function jrOpen(){let h='<div class="bx"><h2>🎂 Verjaardagen</h2>';const L=jrNext().filter(p=>p.days<=61);
+  if(JR.fout)h+='<p>'+xaEsc(JR.fout)+'</p><p style="color:#5a6964;font-size:13.5px">Maak in Google Drive een spreadsheet met de naam <b>Verjaardagen dashboard</b>, met op rij 1: Naam · Dag · Maand · Jaar.</p>';
+  else if(!L.length)h+='<p>De komende 2 maanden is er niemand jarig.</p>';
+  else{let last='';L.forEach(p=>{const kop=p.days===0?'Vandaag':p.days===1?'Morgen':MND[p.d.getMonth()].replace(/^./,c=>c.toUpperCase());
+    if(p.days>1&&kop===last){}else if(kop!==last){h+='<h3>'+kop+'</h3>';last=kop}
+    h+='<div class="e"><b>'+DAG[p.d.getDay()]+' '+p.d.getDate()+' '+MND[p.d.getMonth()]+'</b><div>'+xaEsc(jrTxt({n:p.n,dd:p.dd}))+(p.age!=null?' <span style="color:#5a6964">wordt '+p.age+'</span>':'')+(p.days>1?' <span style="color:#5a6964">· over '+p.days+' dagen</span>':'')+'</div></div>'})}
+  h+='<button class="x">Sluiten</button></div>';xaAg.innerHTML=h;xaAg.hidden=false;xaAg.querySelector('.x').onclick=()=>xaAg.hidden=true}
+// in de zwarte balk (en dus ook in de fotoshow): vandaag en morgen jarig
+{const _u=xaUrgent;xaUrgent=function(){const o=_u(),L=jrNext();
+  const v=L.filter(p=>p.days===0&&!p.dd),m=L.filter(p=>p.days===1&&!p.dd),k=L.filter(p=>p.days===0&&p.dd);
+  if(k.length)o.push(['b','🕯️ Vandaag denken we aan '+k.map(p=>p.n).join(', ')]);
+  if(v.length)o.push(['b','🎂 Vandaag jarig: '+v.map(jrTxt).join(', ')]);if(m.length)o.push(['b','🎂 Morgen jarig: '+m.map(jrTxt).join(', ')]);return o}}
+{const st=document.createElement('style');st.textContent='#nubar .bd{flex:none;border-radius:99px;padding:6px 12px;background:#5a2a43;color:#ffd6e8;font:600 14px system-ui,sans-serif}';document.head.appendChild(st)}
+setTimeout(jrLoad,3000);setInterval(jrChip,30*60e3);
 </script></body></html>
