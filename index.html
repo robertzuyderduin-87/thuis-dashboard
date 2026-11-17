@@ -1134,6 +1134,9 @@ const D=[
  {n:'Spots overloop zolder',t:'light',f:2,p:[4.4,EY+2.0,-4.7],on:true,k:'zoverloop'},
  {n:'Babyfoon Lio',t:'cam',f:2,p:[3.3,EY+1.95,-5.85],v:'Live beeld'},
  {n:'Babyfoon Emi',t:'cam',f:2,p:[3.0,EY+1.38,-1.6],v:'Live beeld'},
+ {n:'Beweging gang',t:'pir',f:0,p:[4.45,2.35,-1.5],v:'Rustig'},
+ {n:'Beweging overloop',t:'pir',f:1,p:[4.55,H0+2.3,-2.1],v:'Rustig'},
+ {n:'Beweging overloop zolder',t:'pir',f:2,p:[4.85,EY+2.0,-3.7],v:'Rustig'},
  {n:'Raam R&M',t:'door',f:1,p:[1.6,H0+1.5,-7.2],v:'Dicht'},
  {n:'Raam Iva',t:'door',f:1,p:[1.9,H0+1.5,-.4],v:'Dicht'},
  {n:'Raam1 Lio',t:'door',f:2,p:[1.25,EY+1.6,-6.1],v:'Dicht'},
@@ -1143,7 +1146,7 @@ const D=[
  {n:'Raam Emi',t:'door',f:2,p:[2.85,EY+1.7,-1.45],v:'Dicht'},
  {n:'Deur garage straatzijde',t:'door',f:0,p:[11.3,1.5,-11.5],v:'Dicht'},
  {n:'Deur garage tuinzijde',t:'door',f:0,p:[6.45,1.5,-12.0],v:'Dicht'}];
-const IC={light:'💡',temp:'🌡️',door:'🚪',co2:'🫧',cam:'📹'};
+const IC={light:'💡',temp:'🌡️',door:'🚪',co2:'🫧',cam:'📹',pir:'👣'};
 const mk=new T.Group();S.add(mk);
 D.forEach(d=>{d.m=new T.Mesh(new T.SphereGeometry(.17,16,12),new T.MeshBasicMaterial({color:0x2f8f83,depthTest:false}));
   d.m.position.set(...d.p);d.m.renderOrder=9;d.m.userData.d=d;mk.add(d.m);
@@ -1218,11 +1221,11 @@ const PANELS={keuken:{t:'Keuken & Eetkamer',rooms:['Keuken','Eetkamer'],
   info:[['Tuindeur','Dicht','ok'],['Beweging','Net nog'],['Tablet','37 %']]}};
 let rpCur=null,rpOpen=true;
 // welke apparaten horen bij welke ruimte (naam zoals in het model)
-const RDEV={'Woonkamer':['Woonkamer','Lichtkoof woonkamer','Spots woonkamer','Thermostaat','Schuifpui'],'Gang':['Gang','Voordeur'],
+const RDEV={'Woonkamer':['Woonkamer','Lichtkoof woonkamer','Spots woonkamer','Thermostaat','Schuifpui'],'Gang':['Gang','Voordeur','Beweging gang'],
  'Toilet':['Toilet'],'Kantoor':['Kantoor','Achterdeur'],'Garage':['Garage','Garage buiten','Camera garage','Deur garage straatzijde','Deur garage tuinzijde'],
  'Tuin':['Spots garage achter','Grondspots achtertuin','Lamp poort','Schuurdeur'],'Veranda':['Hanglampen buitenkeuken','Wandlampen veranda'],'Zijtuin':['Overstek tuin','Tuinspots zijtuin'],
- 'Voortuin':['Overkapping voordeur','WCD voordeur','Camera voorzijde'],'Overloop':['CO₂-sensor'],'Slaapkamer voor':['Slaapkamer','Raam Iva'],'Slaapkamer achter':['Slaapkamer 2','Raam R&M'],
- 'Lio':['Spots Lio','Babyfoon Lio','Raam1 Lio','Raam2 Lio'],'Emi':['Spots Emi','Babyfoon Emi','Raam Emi'],'Overloop zolder':['Spots overloop zolder','Raam1 overloop zolder','Raam2 overloop zolder']};
+ 'Voortuin':['Overkapping voordeur','WCD voordeur','Camera voorzijde'],'Overloop':['CO₂-sensor','Beweging overloop'],'Slaapkamer voor':['Slaapkamer','Raam Iva'],'Slaapkamer achter':['Slaapkamer 2','Raam R&M'],
+ 'Lio':['Spots Lio','Babyfoon Lio','Raam1 Lio','Raam2 Lio'],'Emi':['Spots Emi','Babyfoon Emi','Raam Emi'],'Overloop zolder':['Spots overloop zolder','Beweging overloop zolder','Raam1 overloop zolder','Raam2 overloop zolder']};
 // extra Homey-apparaten die niet in het 3D-model staan
 const XL=[{n:'Lamp poort',n0:'Lamp poort',t:'light',on:false,x:1},{n:'WCD voordeur',n0:'WCD voordeur',t:'light',on:false,x:1},
   {n:'Schuifpui',n0:'Schuifpui',t:'door',v:'Dicht',x:1},{n:'Tuindeur',n0:'Tuindeur',t:'door',v:'Dicht',x:1},{n:'Achterdeur',n0:'Achterdeur',t:'door',v:'Dicht',x:1},{n:'Schuurdeur',n0:'Schuurdeur',t:'door',v:'Dicht',x:1}];
@@ -1336,7 +1339,7 @@ const HID={'Woonkamer':'04197bd6-1486-4b6e-af99-c88c9eb41aa6','Lichtkoof woonkam
  'Spots Lio':'9b60fa5d-0377-465a-a111-8845d24e77bb','Spots Emi':'27eb8517-681f-4d1d-94aa-02cb8eca2905','Babyfoon Lio':'03792c39-ca01-455d-b63e-03f1f80fb6ba','Babyfoon Emi':'f628ca3f-af6f-4a89-9b98-9a0b303e9a90',
  'Raam Iva':'9107e679-93e9-4e40-be11-59a5df71cec2','Raam R&M':'d48889f4-6db0-492c-9827-144fccc6d285','Raam1 Lio':'f66c256d-de00-41e6-9850-c1e233413c74','Raam2 Lio':'76963df5-d218-4f26-9eb5-b61f79986b34',
  'Raam Emi':'cb01917f-5331-47dc-90e3-154443b4f6d1','Raam1 overloop zolder':'76a401ba-f991-40e2-b68e-49d6bc337221','Raam2 overloop zolder':'48445fc8-d667-40d9-9434-b8cffd64103b',
- 'Deur garage straatzijde':'ec965b2f-4af7-4cee-87e7-509a92442b51','Deur garage tuinzijde':'8f276635-d027-453a-8de8-ac778f7898f4','Camera garage':'945711e4-ae09-45b4-8008-26f7af72a224',
+ 'Deur garage straatzijde':'ec965b2f-4af7-4cee-87e7-509a92442b51','Deur garage tuinzijde':'8f276635-d027-453a-8de8-ac778f7898f4','Beweging gang':'c7fb8485-ab02-4bed-bae3-ac36ca5494dd','Beweging overloop':'d72586cd-1de3-4034-a7b7-231e1d31a809','Beweging overloop zolder':'53d57af1-b710-4b62-8487-c4352f8b1b4e','Camera garage':'945711e4-ae09-45b4-8008-26f7af72a224',
  'Schuifpui':'ce224c12-3653-45ec-b659-230e5cf095de','Tuindeur':'32040e15-063c-46f0-97fd-587590e5b096','Achterdeur':'a16c5899-6f14-438e-abac-7dd88c199428','Schuurdeur':'43146ae1-9450-405a-b44f-0cf8efcda085',
  'Spot overloop':'981acc3b-cb6c-4042-b1ce-058515bc147c','Ledstrip overloop':'b2e9b365-6a7b-4669-88ed-a2f01caace8e','Lamp poort':'a08136c4-44f0-4e1e-a235-9f4c10bd9461','WCD voordeur':'41a2885e-f30f-4b67-bb07-29d252e9d8db'};
 const LV={ip:'',key:'',ok:false,err:'',t:null,last:0};
@@ -1384,7 +1387,8 @@ async function lvPoll(){clearTimeout(LV.t);
         if(on!==d.on||(dm!==undefined&&Math.abs((d.dim??1)-dm)>.01)){d.on=on;if(dm!==undefined)d.dim=dm;ch=true}d.sOn=d.on;d.sDim=d.dim}
       else if(d.t==='temp'){const t=v('measure_temperature');if(t!=null){const s=t.toFixed(1).replace('.',',')+' °C';if(s!==d.v){d.v=s;ch=true}}}
       else if(d.t==='door'){const o=v('alarm_contact');if(o!==undefined){const s=o?'Open':'Dicht';if(s!==d.v){d.v=s;ch=true;if(!lvFirst&&o)toast('🚪 '+d.n+' is open')}}}
-      else if(d.t==='cam'){const m=v('alarm_motion')||v('alarm_person');d.v=m?'Beweging!':'Live beeld'}});
+      else if(d.t==='cam'){const m=v('alarm_motion')||v('alarm_person');d.v=m?'Beweging!':'Live beeld'}
+      else if(d.t==='pir'){const m=!!v('alarm_motion'),tp=v('measure_temperature');if(m)d.lastMo=Date.now();const s=m?'Beweging!':'Rustig';d.mo=m;if(s!==d.v){d.v=s;ch=true}d.m.material.color.set(m?0xff6b5c:0x2f8f83)}});
     LV.ok=true;LV.err='';lvFirst=false;if(ch){_apply();view();if(typeof rpSync==='function')rpSync()}}
   catch(e){LV.ok=false;LV.err=e.message==='Failed to fetch'?'Homey niet bereikbaar':e.message}
   lvStatus();LV.t=setTimeout(lvPoll,document.hidden?15000:3000)}
@@ -2070,6 +2074,7 @@ nuBar.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('.bd'))
 {const st=document.createElement('style');st.textContent=`
 #cvb .ci{display:flex;align-items:center;gap:8px;font-size:13px;color:#5a6964;margin:-4px 0 10px}#cvb .ci .dot{width:8px;height:8px;border-radius:9px;background:#c33;flex:none}#cvb .ci .dot.ok{background:#1f7a5c}
 #cvb .cb{display:flex;gap:8px;margin-bottom:10px}#cvb .cb button{flex:1;border:0;border-radius:12px;padding:11px;background:#e3e9e6;font:600 14px system-ui,sans-serif;color:#14201c}
+#cvb .cdx{white-space:pre-wrap;word-break:break-all;font:11px ui-monospace,monospace;background:#f2f5f4;color:#14201c;border-radius:10px;padding:8px;max-height:30vh;overflow:auto;margin:0 0 10px}
 #cvb .cs{display:none;gap:6px;margin-bottom:10px}#cvb .cs.on{display:flex}#cvb .cs input{flex:1;min-width:0;padding:10px;border:1px solid #ccd5d1;border-radius:10px;font:14px system-ui,sans-serif}
 #cvb .cs button{border:0;border-radius:10px;padding:10px 14px;background:#1f7a5c;color:#fff;font-weight:600}
 .feed.big{aspect-ratio:auto;max-height:70vh}.feed.big img{object-fit:contain}`;document.head.appendChild(st)}
@@ -2101,13 +2106,47 @@ async function camShot(d,img,inf){if(CAM.dev!==d)return;const L=camAll(d);let ok
 openCam=async function(d,again){camStop();CAM.dev=d;CAM.good=null;if(!again&&LV.ok&&!camOwn(d)){await camImgs()}const own=camOwn(d),hm=camHomey(d),app=camApp(d);
   cvb.innerHTML='<h2>'+xaEsc(d.n)+'</h2><div class="ci"><span class="dot'+(own||hm?' ok':'')+'"></span><span>'+(own?'Eigen stream':hm?'Beeld uit Homey ophalen…':LV.ok?'Deze camera stuurt geen beeld naar Homey'+(app?' <small>(app: '+xaEsc(app)+')</small>':''):'Niet gekoppeld aan Homey')+'</span></div>'+
     '<div class="feed big">'+(own?'<img alt="Live beeld" src="'+xaEsc(own)+'">':'<img alt="Camerabeeld" hidden><p>'+(hm?'Even geduld…':'Geen beeld beschikbaar.<br>Tik op ⚙️ Stream-adres als je camera een eigen link heeft.')+'</p>')+'</div>'+
-    '<div class="cb"><button data-f>⛶ Groot</button><button data-s>⚙️ Stream-adres</button></div>'+
+    '<div class="cb"><button data-f>⛶ Groot</button><button data-s>⚙️ Stream-adres</button><button data-i>🔍 Details</button></div><pre class="cdx" hidden></pre>'+
     '<div class="cs"><input placeholder="http://192.168.178.x/… (leeg = beeld uit Homey)" value="'+xaEsc(own)+'"><button>Opslaan</button></div><button id="cvx">Sluiten</button>';
   cvEl.classList.add('open');const img=cvb.querySelector('.feed img'),inf=cvb.querySelector('.ci');
   if(own)img.onerror=()=>{inf.innerHTML='<span class="dot"></span>Eigen stream geeft geen beeld'};else if(hm)camShot(d,img,inf);
   const cl=()=>{camStop();cvEl.classList.remove('open')};document.getElementById('cvx').onclick=cl;
   cvb.querySelector('[data-f]').onclick=()=>{const f=cvb.querySelector('.feed');(f.requestFullscreen||f.webkitRequestFullscreen||(()=>{})).call(f)};
   cvb.querySelector('[data-s]').onclick=()=>cvb.querySelector('.cs').classList.toggle('on');
+  cvb.querySelector('[data-i]').onclick=async()=>{const pre=cvb.querySelector('.cdx');if(!pre.hidden){pre.hidden=true;return}await camImgs();const h=camDevH(d)||{},o={};
+    Object.keys(h).filter(k=>/imag|camer|video|stream/i.test(k)).forEach(k=>o[k]=h[k]);
+    const app=camApp(d),I=CAM.imgs||[],mine=I.filter(x=>String(x.ownerUri||'').includes(d.hid)||(app&&String(x.ownerUri||'').includes(app)));
+    pre.textContent='app: '+app+'\nklasse: '+(h.class||h.virtualClass||'?')+'\nvelden: '+Object.keys(h).join(',')+'\nbeeldvelden: '+JSON.stringify(o).slice(0,500)+'\nbeelden in Homey: '+I.length+'\nvan deze app/camera: '+JSON.stringify(mine.map(x=>({id:x.id,owner:x.ownerUri,url:x.url}))).slice(0,600);pre.hidden=false};
   cvb.querySelector('.cs button').onclick=()=>{const v=cvb.querySelector('.cs input').value.trim();try{v?localStorage.setItem('cam_url_'+(d.n0||d.n),v):localStorage.removeItem('cam_url_'+(d.n0||d.n))}catch(e){}openCam(d)}};
 cvEl.onclick=e=>{if(e.target===cvEl){camStop();cvEl.classList.remove('open')}};
+
+// ===================== CAMERA LIVE IN VLC (rtsp-adres per camera, alleen op deze tablet bewaard) =====================
+function camVlc(url){const rest=url.replace(/^rtsp:\/\//i,''),it='intent://'+rest+'#Intent;scheme=rtsp;package=org.videolan.vlc;action=android.intent.action.VIEW;end';
+  try{if(window.fully&&fully.startIntent){fully.startIntent(it);return 'fully'}}catch(e){console.warn('startIntent',e)}
+  try{if(window.fully&&fully.startApplication){fully.startApplication('org.videolan.vlc','android.intent.action.VIEW',url);return 'fully2'}}catch(e){console.warn('startApplication',e)}
+  try{location.href=it;return 'link'}catch(e){return ''}}
+const camMask=u=>String(u).replace(/\/\/([^:@\/]+):([^@\/]*)@/,'//$1:••••@');
+{const _oc=openCam;openCam=async function(d,again){const own=camOwn(d);if(!/^rtsp:/i.test(own))return _oc(d,again);
+  camStop();CAM.dev=d;
+  cvb.innerHTML='<h2>'+xaEsc(d.n)+'</h2><div class="ci"><span class="dot ok"></span><span>🎥 Live beeld opent in VLC…</span></div>'+
+    '<div class="feed"><p>Live beeld staat open in VLC.<br>Met ◀ terug kom je weer op het dashboard.<br><small style="opacity:.7">'+xaEsc(camMask(own))+'</small></p></div>'+
+    '<div class="cb"><button data-o>▶ Opnieuw openen</button><button data-s>⚙️ Stream-adres</button></div>'+
+    '<div class="cs"><input placeholder="rtsp://gebruiker:wachtwoord@192.168.178.x:554/stream1" value="'+xaEsc(own)+'"><button>Opslaan</button></div><button id="cvx">Sluiten</button>';
+  cvEl.classList.add('open');let auto=null;const cl=()=>{clearTimeout(auto);cvEl.classList.remove('open')};document.getElementById('cvx').onclick=cl;
+  const go=()=>{const how=camVlc(own);if(!how)cvb.querySelector('.ci').innerHTML='<span class="dot"></span>VLC openen lukte niet. Staat de JavaScript-koppeling in Fully aan?';else auto=setTimeout(cl,2500)};
+  cvb.querySelector('[data-o]').onclick=go;
+  cvb.querySelector('[data-s]').onclick=()=>{clearTimeout(auto);cvb.querySelector('.cs').classList.toggle('on')};
+  cvb.querySelector('.cs input').onfocus=()=>clearTimeout(auto);
+  cvb.querySelector('.cs button').onclick=()=>{const v=cvb.querySelector('.cs input').value.trim();try{v?localStorage.setItem('cam_url_'+(d.n0||d.n),v):localStorage.removeItem('cam_url_'+(d.n0||d.n))}catch(e){}openCam(d,true)};
+  if(!again)go()}}
+// in het venster zonder stream: uitleg over rtsp
+{const _oc2=openCam;openCam=async function(d,again){const r=await _oc2(d,again);try{const i=cvb.querySelector('.cs input');if(i&&!/^rtsp:/i.test(i.value))i.placeholder='rtsp://gebruiker:wachtwoord@192.168.178.x:554/stream1  (live in VLC)'}catch(e){}return r}}
+
+// ===================== BEWEGING: melding als er beweging is terwijl niemand thuis is (of het alarm aan staat) =====================
+const PIR_WIE=['6287418e-db14-44e2-899b-a0319ef83667','81af6ec7-3ca4-420f-aefb-41c20ec06ffe'],PIR_ALARM='29271705-c08c-4df4-83a5-29f6686db7d1';
+function pirWeg(){if(!LV.ok||!LV.all)return null;const cap=(id,k)=>{const h=LV.all.find(x=>x.id===id),c=h&&h.capabilitiesObj&&h.capabilitiesObj[k];return c?c.value:undefined};
+  const thuis=PIR_WIE.map(id=>cap(id,'presence')).filter(v=>v!==undefined),al=String(cap(PIR_ALARM,'homealarm_state')||'');
+  if(/armed/.test(al)&&!/disarmed/.test(al))return 'alarm staat aan';if(thuis.length&&thuis.every(v=>v===false))return 'niemand thuis';return null}
+{const _u=xaUrgent;xaUrgent=function(){const o=_u();try{const why=pirWeg();if(why){const P=D.filter(d=>d.t==='pir'&&d.lastMo&&Date.now()-d.lastMo<10*60e3);
+  P.forEach(d=>o.unshift(['a','🚨 Beweging '+d.n.replace(/^beweging(ssensor)?\s*/i,'')+' ('+why+')']))}}catch(e){}return o}}
 </script></body></html>
