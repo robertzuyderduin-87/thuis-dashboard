@@ -2206,7 +2206,7 @@ const DB={id:'976994a8-5836-4ba7-a37a-3dd4ba93000b',prev:false,t:0};
 function dbCheck(){if(!LV.ok||!LV.all)return;const h=LV.all.find(x=>x.id===DB.id);const c=h&&h.capabilitiesObj&&h.capabilitiesObj.alarm_doorbell;const on=!!(c&&c.value);
   if(on&&!DB.prev){DB.t=Date.now();const d=D.find(x=>x.n0==='Deurbel'||x.n==='Deurbel');
     try{if(XA&&XA.on&&typeof xaStop==='function')xaStop()}catch(e){}
-    if(d&&/^rtsp:/i.test(camOwn(d)))openCam(d);else toast('🔔 Er wordt aangebeld!');try{nuDraw()}catch(e){}}
+    toast('🔔 Er wordt aangebeld!');if(d)openCam(d);try{nuDraw()}catch(e){}}
   DB.prev=on}
 {const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{dbCheck()}catch(e){}return r}}
 {const _u=xaUrgent;xaUrgent=function(){const o=_u();if(DB.t&&Date.now()-DB.t<2*60e3)o.unshift(['w','🔔 Er stond iemand aan de deur ('+new Date(DB.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})+')']);return o}}
