@@ -1125,6 +1125,7 @@ const D=[
  {n:'Grondspots achtertuin',t:'light',f:0,p:[.5,.6,-HD-4.2],on:false,k:'grondspots'},
  {n:'Tuinspots zijtuin',t:'light',f:0,p:[HX+3.4,1.5,3.4],on:false,k:'tuinspots'},
  {n:'Camera voorzijde',t:'cam',f:0,p:[.25,2.62,.14],v:'Live beeld'},
+ {n:'Deurbel',t:'cam',f:0,p:[5.5,1.35,.16],v:'Live beeld'},
  {n:'Camera garage',t:'cam',f:0,p:[XR-.1,2.3,ZR+.45],v:'Live beeld'},
  {n:'Slaapkamer',t:'light',f:1,p:[1.7,H0+1.9,-1.8],on:false,k:'slaap'},
  {n:'Slaapkamer 2',t:'light',f:1,p:[2.0,H0+1.9,-4.6],on:false,k:'slaap2'},
@@ -1137,6 +1138,7 @@ const D=[
  {n:'Beweging gang',t:'pir',f:0,p:[4.45,2.35,-1.5],v:'Rustig'},
  {n:'Beweging overloop',t:'pir',f:1,p:[4.55,H0+2.3,-2.1],v:'Rustig'},
  {n:'Beweging overloop zolder',t:'pir',f:2,p:[4.85,EY+2.0,-3.7],v:'Rustig'},
+ {n:'Verkeerslicht',t:'vl',f:2,p:[4.3,EY+0.85,-3.3],v:'—'},
  {n:'Raam R&M',t:'door',f:1,p:[1.6,H0+1.5,-7.2],v:'Dicht'},
  {n:'Raam Iva',t:'door',f:1,p:[1.9,H0+1.5,-.4],v:'Dicht'},
  {n:'Raam1 Lio',t:'door',f:2,p:[1.25,EY+1.6,-6.1],v:'Dicht'},
@@ -1146,7 +1148,7 @@ const D=[
  {n:'Raam Emi',t:'door',f:2,p:[2.85,EY+1.7,-1.45],v:'Dicht'},
  {n:'Deur garage straatzijde',t:'door',f:0,p:[11.3,1.5,-11.5],v:'Dicht'},
  {n:'Deur garage tuinzijde',t:'door',f:0,p:[6.45,1.5,-12.0],v:'Dicht'}];
-const IC={light:'💡',temp:'🌡️',door:'🚪',co2:'🫧',cam:'📹',pir:'👣'};
+const IC={light:'💡',temp:'🌡️',door:'🚪',co2:'🫧',cam:'📹',pir:'👣',vl:'🚦'};
 const mk=new T.Group();S.add(mk);
 D.forEach(d=>{d.m=new T.Mesh(new T.SphereGeometry(.17,16,12),new T.MeshBasicMaterial({color:0x2f8f83,depthTest:false}));
   d.m.position.set(...d.p);d.m.renderOrder=9;d.m.userData.d=d;mk.add(d.m);
@@ -1224,8 +1226,8 @@ let rpCur=null,rpOpen=true;
 const RDEV={'Woonkamer':['Woonkamer','Lichtkoof woonkamer','Spots woonkamer','Thermostaat','Schuifpui'],'Gang':['Gang','Voordeur','Beweging gang'],
  'Toilet':['Toilet'],'Kantoor':['Kantoor','Achterdeur'],'Garage':['Garage','Garage buiten','Camera garage','Deur garage straatzijde','Deur garage tuinzijde'],
  'Tuin':['Spots garage achter','Grondspots achtertuin','Lamp poort','Schuurdeur'],'Veranda':['Hanglampen buitenkeuken','Wandlampen veranda'],'Zijtuin':['Overstek tuin','Tuinspots zijtuin'],
- 'Voortuin':['Overkapping voordeur','WCD voordeur','Camera voorzijde'],'Overloop':['CO₂-sensor','Beweging overloop'],'Slaapkamer voor':['Slaapkamer','Raam Iva'],'Slaapkamer achter':['Slaapkamer 2','Raam R&M'],
- 'Lio':['Spots Lio','Babyfoon Lio','Raam1 Lio','Raam2 Lio'],'Emi':['Spots Emi','Babyfoon Emi','Raam Emi'],'Overloop zolder':['Spots overloop zolder','Beweging overloop zolder','Raam1 overloop zolder','Raam2 overloop zolder']};
+ 'Voortuin':['Overkapping voordeur','WCD voordeur','Camera voorzijde','Deurbel'],'Overloop':['CO₂-sensor','Beweging overloop'],'Slaapkamer voor':['Slaapkamer','Raam Iva'],'Slaapkamer achter':['Slaapkamer 2','Raam R&M'],
+ 'Lio':['Spots Lio','Babyfoon Lio','Raam1 Lio','Raam2 Lio'],'Emi':['Spots Emi','Babyfoon Emi','Raam Emi'],'Overloop zolder':['Spots overloop zolder','Beweging overloop zolder','Verkeerslicht','Raam1 overloop zolder','Raam2 overloop zolder']};
 // extra Homey-apparaten die niet in het 3D-model staan
 const XL=[{n:'Lamp poort',n0:'Lamp poort',t:'light',on:false,x:1},{n:'WCD voordeur',n0:'WCD voordeur',t:'light',on:false,x:1},
   {n:'Schuifpui',n0:'Schuifpui',t:'door',v:'Dicht',x:1},{n:'Tuindeur',n0:'Tuindeur',t:'door',v:'Dicht',x:1},{n:'Achterdeur',n0:'Achterdeur',t:'door',v:'Dicht',x:1},{n:'Schuurdeur',n0:'Schuurdeur',t:'door',v:'Dicht',x:1}];
@@ -1335,11 +1337,11 @@ const HID={'Woonkamer':'04197bd6-1486-4b6e-af99-c88c9eb41aa6','Lichtkoof woonkam
  'Voordeur':'b082cbab-7697-4923-bae5-7937237ff324','Overkapping voordeur':'e1b9e145-4832-48e6-a64c-6f91a272deec','Overstek tuin':'012c4464-cacf-4dad-959b-8ae8d45e1ec8',
  'Spots kantoor':'d62e15e7-5176-4846-9ba1-2737c5492894','Spots garage achter':'d62e15e7-5176-4846-9ba1-2737c5492894','Garage buiten':'f81c12df-2ee9-4f13-9ade-65d6546b3304',
  'Wandlampen veranda':'d20b9579-f053-4c2f-9feb-bbfd55190293','Grondspots achtertuin':'73680883-404c-4492-8c49-c1ae90345e2b','Tuinspots zijtuin':'e9138e1c-28af-4886-bb36-613b09f473cd',
- 'Camera voorzijde':'7f62707c-6b5f-4a90-a436-faec3fa851b9','Spots overloop zolder':'ae7c4902-4dbb-45cf-8389-c09f2c3c1c6b','Hanglampen buitenkeuken':'61f54c6d-618d-4140-8c4f-7c6d9b878b53',
+ 'Camera voorzijde':'7f62707c-6b5f-4a90-a436-faec3fa851b9','Deurbel':'976994a8-5836-4ba7-a37a-3dd4ba93000b','Spots overloop zolder':'ae7c4902-4dbb-45cf-8389-c09f2c3c1c6b','Hanglampen buitenkeuken':'61f54c6d-618d-4140-8c4f-7c6d9b878b53',
  'Spots Lio':'9b60fa5d-0377-465a-a111-8845d24e77bb','Spots Emi':'27eb8517-681f-4d1d-94aa-02cb8eca2905','Babyfoon Lio':'03792c39-ca01-455d-b63e-03f1f80fb6ba','Babyfoon Emi':'f628ca3f-af6f-4a89-9b98-9a0b303e9a90',
  'Raam Iva':'9107e679-93e9-4e40-be11-59a5df71cec2','Raam R&M':'d48889f4-6db0-492c-9827-144fccc6d285','Raam1 Lio':'f66c256d-de00-41e6-9850-c1e233413c74','Raam2 Lio':'76963df5-d218-4f26-9eb5-b61f79986b34',
  'Raam Emi':'cb01917f-5331-47dc-90e3-154443b4f6d1','Raam1 overloop zolder':'76a401ba-f991-40e2-b68e-49d6bc337221','Raam2 overloop zolder':'48445fc8-d667-40d9-9434-b8cffd64103b',
- 'Deur garage straatzijde':'ec965b2f-4af7-4cee-87e7-509a92442b51','Deur garage tuinzijde':'8f276635-d027-453a-8de8-ac778f7898f4','Beweging gang':'c7fb8485-ab02-4bed-bae3-ac36ca5494dd','Beweging overloop':'d72586cd-1de3-4034-a7b7-231e1d31a809','Beweging overloop zolder':'53d57af1-b710-4b62-8487-c4352f8b1b4e','Camera garage':'945711e4-ae09-45b4-8008-26f7af72a224',
+ 'Deur garage straatzijde':'ec965b2f-4af7-4cee-87e7-509a92442b51','Deur garage tuinzijde':'8f276635-d027-453a-8de8-ac778f7898f4','Verkeerslicht':'6ecab0f4-e914-4181-b2b5-468abf551e04','Beweging gang':'c7fb8485-ab02-4bed-bae3-ac36ca5494dd','Beweging overloop':'d72586cd-1de3-4034-a7b7-231e1d31a809','Beweging overloop zolder':'53d57af1-b710-4b62-8487-c4352f8b1b4e','Camera garage':'945711e4-ae09-45b4-8008-26f7af72a224',
  'Schuifpui':'ce224c12-3653-45ec-b659-230e5cf095de','Tuindeur':'32040e15-063c-46f0-97fd-587590e5b096','Achterdeur':'a16c5899-6f14-438e-abac-7dd88c199428','Schuurdeur':'43146ae1-9450-405a-b44f-0cf8efcda085',
  'Spot overloop':'981acc3b-cb6c-4042-b1ce-058515bc147c','Ledstrip overloop':'b2e9b365-6a7b-4669-88ed-a2f01caace8e','Lamp poort':'a08136c4-44f0-4e1e-a235-9f4c10bd9461','WCD voordeur':'41a2885e-f30f-4b67-bb07-29d252e9d8db'};
 const LV={ip:'',key:'',ok:false,err:'',t:null,last:0};
@@ -1387,7 +1389,8 @@ async function lvPoll(){clearTimeout(LV.t);
         if(on!==d.on||(dm!==undefined&&Math.abs((d.dim??1)-dm)>.01)){d.on=on;if(dm!==undefined)d.dim=dm;ch=true}d.sOn=d.on;d.sDim=d.dim}
       else if(d.t==='temp'){const t=v('measure_temperature');if(t!=null){const s=t.toFixed(1).replace('.',',')+' °C';if(s!==d.v){d.v=s;ch=true}}}
       else if(d.t==='door'){const o=v('alarm_contact');if(o!==undefined){const s=o?'Open':'Dicht';if(s!==d.v){d.v=s;ch=true;if(!lvFirst&&o)toast('🚪 '+d.n+' is open')}}}
-      else if(d.t==='cam'){const m=v('alarm_motion')||v('alarm_person');d.v=m?'Beweging!':'Live beeld'}
+      else if(d.t==='cam'){const m=v('alarm_motion')||v('alarm_person');d.v=v('alarm_doorbell')?'🔔 Er wordt aangebeld!':m?'Beweging!':'Live beeld'}
+      else if(d.t==='vl'){const s=vlState(v);if(s.t!==d.v){d.v=s.t;ch=true}d.m.material.color.set(s.c)}
       else if(d.t==='pir'){const m=!!v('alarm_motion'),tp=v('measure_temperature');if(m)d.lastMo=Date.now();const s=m?'Beweging!':'Rustig';d.mo=m;if(s!==d.v){d.v=s;ch=true}d.m.material.color.set(m?0xff6b5c:0x2f8f83)}});
     LV.ok=true;LV.err='';lvFirst=false;if(ch){_apply();view();if(typeof rpSync==='function')rpSync()}}
   catch(e){LV.ok=false;LV.err=e.message==='Failed to fetch'?'Homey niet bereikbaar':e.message}
@@ -2149,4 +2152,62 @@ function pirWeg(){if(!LV.ok||!LV.all)return null;const cap=(id,k)=>{const h=LV.a
   if(/armed/.test(al)&&!/disarmed/.test(al))return 'alarm staat aan';if(thuis.length&&thuis.every(v=>v===false))return 'niemand thuis';return null}
 {const _u=xaUrgent;xaUrgent=function(){const o=_u();try{const why=pirWeg();if(why){const P=D.filter(d=>d.t==='pir'&&d.lastMo&&Date.now()-d.lastMo<10*60e3);
   P.forEach(d=>o.unshift(['a','🚨 Beweging '+d.n.replace(/^beweging(ssensor)?\s*/i,'')+' ('+why+')']))}}catch(e){}return o}}
+
+// ===================== VERKEERSLICHT (Squire overloop zolder): bedienen + tijden instellen =====================
+const VL={id:'6ecab0f4-e914-4181-b2b5-468abf551e04',t:null};
+function vlState(v){const on=!!v('onoff'),h=+(v('light_hue')||0),dm=Math.round((+(v('dim')||0))*100);if(!on)return {k:'uit',t:'Uit',c:0x555c5e};
+  const k=(h<0.04||h>0.94)?'rood':h<0.17?'oranje':(h>0.22&&h<0.48)?'groen':'kleur';
+  return {k,t:({rood:'🔴 Rood',oranje:'🟠 Oranje',groen:'🟢 Groen',kleur:'Andere kleur'})[k]+' · '+dm+'%',c:({rood:0xff3b30,oranje:0xff9500,groen:0x34c759,kleur:0x9b7bff})[k]}}
+const VL_JS=`const A=JSON.parse(args[0]||'{}');const L='6ecab0f4-e914-4181-b2b5-468abf551e04',V='92cb3dc9-48be-427f-a02d-c4743058527b',FO='a9f161ee-b541-4cd0-9f18-dc4892d23642',FG='deafda52-3e06-441d-a483-8e88387b047b';
+const set=(c,v)=>Homey.devices.setCapabilityValue({deviceId:L,capabilityId:c,value:v});
+const C={rood:[0,0.25],oranje:[0.083,0.5],groen:[0.333,0.75]};
+if(C[A.a]){await set('onoff',true);try{await set('light_mode','color')}catch(e){}await set('light_hue',C[A.a][0]);await set('light_saturation',1);await set('dim',C[A.a][1]);await Homey.logic.updateVariable({id:V,variable:{value:A.a==='rood'}})}
+if(A.a==='uit'){await set('onoff',false);await Homey.logic.updateVariable({id:V,variable:{value:false}})}
+if(A.a==='tijd'){for(const [id,t] of [[FO,A.o],[FG,A.g]]){if(!/^\\d\\d:\\d\\d$/.test(t||''))continue;const f=await Homey.flow.getFlow({id});
+  await Homey.flow.updateFlow({id,flow:{name:f.name.replace(/\\d\\d:\\d\\d/,t),trigger:Object.assign({},f.trigger,{args:Object.assign({},f.trigger.args,{time:t})})}})}}
+const fo=await Homey.flow.getFlow({id:FO}),fg=await Homey.flow.getFlow({id:FG});
+return JSON.stringify({o:fo.trigger.args.time,g:fg.trigger.args.time});`;
+{const st=document.createElement('style');st.textContent=`
+#vlp{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px}#vlp[hidden]{display:none}
+#vlp .bx{background:#fff;color:#14201c;border-radius:20px;padding:18px;width:min(520px,100%);max-height:90vh;overflow:auto;font:15px system-ui,sans-serif}
+#vlp h2{margin:0 0 4px;font-size:22px}#vlp .st{display:flex;gap:12px;align-items:center;background:#f2f5f4;border-radius:14px;padding:12px;margin:10px 0}
+#vlp .dot{width:34px;height:34px;border-radius:50%;flex:none;box-shadow:0 0 14px currentColor}
+#vlp .kn{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}#vlp .kn button{border:0;border-radius:14px;padding:14px 6px;font:600 15px system-ui,sans-serif;background:#e3e9e6;color:#14201c}
+#vlp .kn button.on{outline:3px solid #1f7a5c}
+#vlp h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#5a6964;margin:16px 0 6px}
+#vlp .tj{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center}#vlp .tj input{font:600 17px system-ui,sans-serif;padding:8px;border:1px solid #ccd5d1;border-radius:10px}
+#vlp .sv{margin-top:10px;width:100%;padding:12px;border:0;border-radius:12px;background:#1f7a5c;color:#fff;font-weight:600;font-size:15px}
+#vlp .x{margin-top:10px;width:100%;padding:12px;border:0;border-radius:12px;background:#e3e9e6;font-weight:600;font-size:15px}
+#vlp small{color:#5a6964}`;document.head.appendChild(st)}
+const vlP=document.createElement('div');vlP.id='vlp';vlP.hidden=true;document.body.appendChild(vlP);vlP.onclick=e=>{if(e.target===vlP)vlP.hidden=true};
+async function vlRun(a){try{const r=await hsRun(VL_JS,JSON.stringify(a));const j=JSON.parse(r||'{}');if(j.o)VL.t=j;return j}catch(e){toast('⚠️ Verkeerslicht: '+e.message);return null}}
+function vlDraw(){if(vlP.hidden)return;const d=D.find(x=>x.t==='vl');const h=LV.all&&LV.all.find(x=>x.id===VL.id);const cap=k=>{const c=h&&h.capabilitiesObj&&h.capabilitiesObj[k];return c?c.value:null};
+  const s=h?vlState(cap):{k:'?',t:LV.ok?'Lamp niet gevonden':'Niet gekoppeld aan Homey',c:0x999999};const col='#'+s.c.toString(16).padStart(6,'0');
+  const T=VL.t||{o:'06:00',g:'07:00'};const keep=vlP.querySelector('.tj')?{o:vlP.querySelector('[data-t=o]').value,g:vlP.querySelector('[data-t=g]').value,dirty:vlP._dirty}:null;
+  vlP.innerHTML='<div class="bx"><h2>🚦 Verkeerslicht</h2><small>Overloop zolder · rood om 20:00</small><div class="st"><span class="dot" style="background:'+col+';color:'+col+'"></span><b>'+xaEsc(s.t)+'</b></div>'+
+    '<div class="kn">'+[['rood','🔴 Rood'],['oranje','🟠 Oranje'],['groen','🟢 Groen'],['uit','⚫ Uit']].map(([k,t])=>'<button data-a="'+k+'" class="'+(s.k===k?'on':'')+'">'+t+'</button>').join('')+'</div>'+
+    '<h3>Tijden</h3><div class="tj"><span>🟠 Oranje om</span><input type="time" data-t="o" value="'+(keep&&keep.dirty?keep.o:T.o)+'"><span>🟢 Groen om</span><input type="time" data-t="g" value="'+(keep&&keep.dirty?keep.g:T.g)+'"></div>'+
+    '<button class="sv">Tijden opslaan</button><button class="x">Sluiten</button></div>';
+  vlP.querySelector('.x').onclick=()=>{vlP.hidden=true;vlP._dirty=false};
+  vlP.querySelectorAll('[data-t]').forEach(i=>i.oninput=()=>vlP._dirty=true);
+  vlP.querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{toast('🚦 '+b.textContent+'…');await vlRun({a:b.dataset.a});setTimeout(lvPoll,800);setTimeout(()=>{lvPoll();vlDraw()},2500)});
+  vlP.querySelector('.sv').onclick=async()=>{const o=vlP.querySelector('[data-t=o]').value,g=vlP.querySelector('[data-t=g]').value;
+    if(!/^\d\d:\d\d$/.test(o)||!/^\d\d:\d\d$/.test(g))return toast('⚠️ Vul beide tijden in');if(o>=g)return toast('⚠️ Oranje moet vóór groen');if(o<'01:00')return toast('⚠️ Oranje na 01:00 graag');
+    toast('💾 Tijden opslaan…');const j=await vlRun({a:'tijd',o,g});if(j&&j.o){vlP._dirty=false;toast('✅ Oranje '+j.o+' · groen '+j.g);vlDraw()}}}
+async function vlOpen(){vlP.hidden=false;vlP._dirty=false;vlDraw();if(LV.ok){await vlRun({a:'get'});vlDraw()}}
+{const _t=tap;tap=function(d){if(d&&d.t==='vl')return vlOpen();return _t.apply(this,arguments)}}
+{const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{vlDraw()}catch(e){}return r}}
+{const _rr=rpRender;rpRender=function(){_rr.apply(this,arguments);try{if(!rpOpen||!inside||inside.n!=='Overloop zolder')return;const d0=D.find(x=>x.t==='vl');
+  const d=document.createElement('div');d.className='sec';d.innerHTML='<h3>Verkeerslicht</h3><button class="vlb" style="width:100%;border:0;border-radius:12px;padding:12px;background:#f2f5f4;text-align:left;font:600 15px system-ui,sans-serif">🚦 '+xaEsc(d0?d0.v:'')+' · tijden & bediening</button>';
+  d.querySelector('.vlb').onclick=vlOpen;const after=rp.querySelector('.rps');(after?after:rp.firstChild).after(d)}catch(e){console.warn(e)}}}
+
+// ===================== DEURBEL (Reolink): melding in de balk + live beeld vanzelf openen =====================
+const DB={id:'976994a8-5836-4ba7-a37a-3dd4ba93000b',prev:false,t:0};
+function dbCheck(){if(!LV.ok||!LV.all)return;const h=LV.all.find(x=>x.id===DB.id);const c=h&&h.capabilitiesObj&&h.capabilitiesObj.alarm_doorbell;const on=!!(c&&c.value);
+  if(on&&!DB.prev){DB.t=Date.now();const d=D.find(x=>x.n0==='Deurbel'||x.n==='Deurbel');
+    try{if(XA&&XA.on&&typeof xaStop==='function')xaStop()}catch(e){}
+    if(d&&/^rtsp:/i.test(camOwn(d)))openCam(d);else toast('🔔 Er wordt aangebeld!');try{nuDraw()}catch(e){}}
+  DB.prev=on}
+{const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{dbCheck()}catch(e){}return r}}
+{const _u=xaUrgent;xaUrgent=function(){const o=_u();if(DB.t&&Date.now()-DB.t<2*60e3)o.unshift(['w','🔔 Er stond iemand aan de deur ('+new Date(DB.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})+')']);return o}}
 </script></body></html>
