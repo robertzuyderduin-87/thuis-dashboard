@@ -1631,6 +1631,126 @@ function conDraw(force){const t=conTypes(),key=t.join('+');if(!force&&key===CON.
   CON.grp=g;S.add(g);if(typeof kick==='function')kick(1,10)}
 setTimeout(()=>conDraw(1),9000);setInterval(()=>conDraw(),5*60e3);
 
+
+// ===================== NIEUW (nov '26): BEWEGING, VERKEERSLICHT, DEURBEL, CAMERA'S IN VLC =====================
+const NW={dbId:'976994a8-5836-4ba7-a37a-3dd4ba93000b',vlId:'6ecab0f4-e914-4181-b2b5-468abf551e04',dbT:0,dbPrev:null,vlT:null,
+  wie:['6287418e-db14-44e2-899b-a0319ef83667','81af6ec7-3ca4-420f-aefb-41c20ec06ffe'],alarm:'29271705-c08c-4df4-83a5-29f6686db7d1',pir:[]};
+try{NW.dbT=+localStorage.getItem('db_last')||0}catch(e){}
+const nwCap=(id,k)=>{const h=LV.all&&LV.all.find(x=>x.id===id),c=h&&h.capabilitiesObj&&h.capabilitiesObj[k];return c?c.value:undefined};
+const nwHm=t=>new Date(t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+const nwWhen=t=>{if(!t)return 'nog niet';const d=new Date(t),n=new Date(),y=new Date(n-864e5);
+  return (d.toDateString()===n.toDateString()?'vandaag ':d.toDateString()===y.toDateString()?'gisteren ':d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'})+' ')+nwHm(t)};
+{const st=document.createElement('style');st.textContent=`
+.nwbig{width:100%;border:0;border-radius:14px;padding:14px;font:600 16px system-ui,sans-serif;background:#1f7a5c;color:#fff;margin-bottom:8px}
+.nwcs{display:flex;gap:8px}.nwcs input{flex:1;min-width:0;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px;background:var(--card);color:var(--ink)}
+.nwcs button{border:0;border-radius:10px;padding:0 14px;font-weight:600;background:#1f7a5c;color:#fff}
+.nwdot{width:22px;height:22px;border-radius:50%;flex:none;box-shadow:0 0 10px currentColor}
+.nwrw{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+#vlp{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.45);display:grid;place-items:end center}#vlp[hidden]{display:none}
+#vlp .bx{box-sizing:border-box;background:#fff;color:#14201c;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));width:100%;max-width:520px;max-height:88vh;overflow:auto;font:15px system-ui,sans-serif}
+#vlp h2{margin:0 0 2px;font-size:21px}#vlp .st{display:flex;gap:12px;align-items:center;background:#f2f5f4;border-radius:14px;padding:12px;margin:10px 0}
+#vlp .dot{width:30px;height:30px;border-radius:50%;flex:none;box-shadow:0 0 14px currentColor}
+#vlp .kn{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}#vlp .kn button{border:0;border-radius:14px;padding:14px 6px;font:600 15px system-ui,sans-serif;background:#e3e9e6;color:#14201c}
+#vlp .kn button.on{outline:3px solid #1f7a5c}
+#vlp h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#5a6964;margin:16px 0 6px}
+#vlp .tj{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center}#vlp .tj input{font:600 17px system-ui,sans-serif;padding:8px;border:1px solid #ccd5d1;border-radius:10px;background:#fff;color:#14201c}
+#vlp .sv,#vlp .x{margin-top:10px;width:100%;padding:13px;border:0;border-radius:12px;font-weight:600;font-size:15px}#vlp .sv{background:#1f7a5c;color:#fff}#vlp .x{background:#e3e9e6;color:#14201c}
+#vlp small{color:#5a6964}`;document.head.appendChild(st)}
+
+// ---- apparaten in de juiste ruimte (x2: de gewone Homey-ronde laat ze met rust, wij werken ze zelf bij)
+[['0|Gang','Beweging gang','c7fb8485-ab02-4bed-bae3-ac36ca5494dd'],['1|Overloop','Beweging overloop','d72586cd-1de3-4034-a7b7-231e1d31a809'],
+ ['2|Overloop zolder','Beweging overloop zolder','53d57af1-b710-4b62-8487-c4352f8b1b4e']].forEach(([k,n,id])=>{const d={n,n0:n,t:'pir',v:'Rustig',x2:1,id,lastMo:0};NW.pir.push(d);if(ZM[k])ZM[k].dev.push(d)});
+{const r=ZM['0|Voortuin'];if(r&&!r.dev.some(d=>d.n==='Deurbel')){const d={n:'Deurbel',n0:'Deurbel',t:'cam',f:0,p:[5.5,1.35,.16],v:'Live beeld',x2:1};r.dev.push(d);
+  try{const s=new T.Sprite(new T.SpriteMaterial({map:camTex,depthTest:false}));s.position.set(d.p[0],d.p[1]+.3,d.p[2]);s.scale.set(1,1,1);s.renderOrder=10;s.userData.cam=d;S.add(s);CAMS.push(s);s.visible=lvl===0}catch(e){}}}
+if(EX.Voortuin)EX.Voortuin.bell=0;
+
+// ---- iemand thuis? (voor de bewegingsmelding)
+function nwWeg(){if(!LV.ok)return null;const t=NW.wie.map(id=>nwCap(id,'presence')).filter(v=>v!==undefined),al=String(nwCap(NW.alarm,'homealarm_state')||'');
+  if(/armed/.test(al)&&!/disarmed/.test(al))return 'het alarm aan staat';if(t.length&&t.every(v=>v===false))return 'niemand thuis is';return null}
+
+// ---- verkeerslicht
+function vlState(){if(!LV.ok)return {k:'?',t:'Niet gekoppeld aan Homey',c:'#999999'};if(!LV.all.some(x=>x.id===NW.vlId))return {k:'?',t:'Lamp niet gevonden',c:'#999999'};
+  const v=k=>nwCap(NW.vlId,k),on=!!v('onoff'),h=+(v('light_hue')||0),dm=Math.round((+(v('dim')||0))*100);if(!on)return {k:'uit',t:'Uit',c:'#555c5e'};
+  const k=(h<0.04||h>0.94)?'rood':h<0.17?'oranje':(h>0.22&&h<0.48)?'groen':'kleur';
+  return {k,t:({rood:'🔴 Rood',oranje:'🟠 Oranje',groen:'🟢 Groen',kleur:'Andere kleur'})[k]+' · '+dm+'%',c:({rood:'#ff3b30',oranje:'#ff9500',groen:'#34c759',kleur:'#9b7bff'})[k]}}
+async function hsRun(code,arg){const C='homey:app:com.athom.homeyscript',K='runCodeWithArgReturnsString_v2';
+  for(const t of [C+'/'+C+':'+K,C+'/'+K]){const r=await fetch(lvBase()+'/api/manager/flow/flowcardaction/'+t+'/run',{method:'POST',headers:lvH(),body:JSON.stringify({args:{code,argument:arg||''}})});
+    if(r.ok){const j=await r.json().catch(()=>({}));return j&&j.returnTokens?j.returnTokens.string:null}if(r.status!==404)throw new Error('fout '+r.status)}return null}
+const VL_JS=`const A=JSON.parse(args[0]||'{}');const L='6ecab0f4-e914-4181-b2b5-468abf551e04',V='92cb3dc9-48be-427f-a02d-c4743058527b',FO='a9f161ee-b541-4cd0-9f18-dc4892d23642',FG='deafda52-3e06-441d-a483-8e88387b047b';
+const set=(c,v)=>Homey.devices.setCapabilityValue({deviceId:L,capabilityId:c,value:v});
+const C={rood:[0,0.25],oranje:[0.083,0.5],groen:[0.333,0.75]};
+if(C[A.a]){await set('onoff',true);try{await set('light_mode','color')}catch(e){}await set('light_hue',C[A.a][0]);await set('light_saturation',1);await set('dim',C[A.a][1]);await Homey.logic.updateVariable({id:V,variable:{value:A.a==='rood'}})}
+if(A.a==='uit'){await set('onoff',false);await Homey.logic.updateVariable({id:V,variable:{value:false}})}
+if(A.a==='tijd'){for(const [id,t] of [[FO,A.o],[FG,A.g]]){if(!/^\\d\\d:\\d\\d$/.test(t||''))continue;const f=await Homey.flow.getFlow({id});
+  await Homey.flow.updateFlow({id,flow:{name:f.name.replace(/\\d\\d:\\d\\d/,t),trigger:Object.assign({},f.trigger,{args:Object.assign({},f.trigger.args,{time:t})})}})}}
+const fo=await Homey.flow.getFlow({id:FO}),fg=await Homey.flow.getFlow({id:FG});
+return JSON.stringify({o:fo.trigger.args.time,g:fg.trigger.args.time});`;
+const vlP=document.createElement('div');vlP.id='vlp';vlP.hidden=true;document.body.appendChild(vlP);vlP.onclick=e=>{if(e.target===vlP)vlP.hidden=true};
+async function vlRun(a){if(!LV.ok){toast('⚠️ Niet verbonden met Homey');return null}try{const r=await hsRun(VL_JS,JSON.stringify(a));const j=JSON.parse(r||'{}');if(j.o)NW.vlT=j;return j}catch(e){toast('⚠️ Verkeerslicht: '+e.message);return null}}
+function vlDraw(){if(vlP.hidden)return;const s=vlState(),T0=NW.vlT||{o:'06:00',g:'07:00'};
+  const keep=vlP._dirty&&vlP.querySelector('[data-vt=o]')?{o:vlP.querySelector('[data-vt=o]').value,g:vlP.querySelector('[data-vt=g]').value}:null;
+  vlP.innerHTML='<div class="bx"><h2>🚦 Verkeerslicht</h2><small>Overloop zolder · rood om 20:00</small><div class="st"><span class="dot" style="background:'+s.c+';color:'+s.c+'"></span><b>'+esc(s.t)+'</b></div>'+
+    '<div class="kn">'+[['rood','🔴 Rood'],['oranje','🟠 Oranje'],['groen','🟢 Groen'],['uit','⚫ Uit']].map(([k,t])=>'<button data-va="'+k+'" class="'+(s.k===k?'on':'')+'">'+t+'</button>').join('')+'</div>'+
+    '<h3>Tijden</h3><div class="tj"><span>🟠 Oranje om</span><input type="time" data-vt="o" value="'+(keep?keep.o:T0.o)+'"><span>🟢 Groen om</span><input type="time" data-vt="g" value="'+(keep?keep.g:T0.g)+'"></div>'+
+    '<button class="sv">Tijden opslaan</button><button class="x">Sluiten</button></div>';
+  vlP.querySelector('.x').onclick=()=>{vlP.hidden=true;vlP._dirty=false};
+  vlP.querySelectorAll('[data-vt]').forEach(i=>i.oninput=()=>vlP._dirty=true);
+  vlP.querySelectorAll('[data-va]').forEach(b=>b.onclick=async e=>{e.stopPropagation();toast('🚦 '+b.textContent+'…');await vlRun({a:b.dataset.va});setTimeout(lvPoll,800);setTimeout(()=>{lvPoll();vlDraw()},2500)});
+  vlP.querySelector('.sv').onclick=async e=>{e.stopPropagation();const o=vlP.querySelector('[data-vt=o]').value,g=vlP.querySelector('[data-vt=g]').value;
+    if(!/^\d\d:\d\d$/.test(o)||!/^\d\d:\d\d$/.test(g))return toast('⚠️ Vul beide tijden in');if(o>=g)return toast('⚠️ Oranje moet vóór groen');if(o<'01:00')return toast('⚠️ Oranje na 01:00 graag');
+    toast('💾 Tijden opslaan…');const j=await vlRun({a:'tijd',o,g});if(j&&j.o){vlP._dirty=false;toast('✅ Oranje '+j.o+' · groen '+j.g);vlDraw()}}}
+async function vlOpen(){vlP.hidden=false;vlP._dirty=false;vlDraw();if(LV.ok){await vlRun({a:'get'});vlDraw()}}
+
+// ---- camera's: alleen op verzoek, live in VLC (rtsp-adres blijft alleen op deze telefoon)
+const camKey=n=>'cam_url_'+n;
+const camUrl=n=>{try{return localStorage.getItem(camKey(n))||''}catch(e){return ''}};
+const camMask=u=>String(u).replace(/\/\/([^:@\/]+):([^@\/]*)@/,'//$1:••••@');
+function camVlc(url){const rest=url.replace(/^rtsp:\/\//i,'');location.href='intent://'+rest+'#Intent;scheme=rtsp;package=org.videolan.vlc;action=android.intent.action.VIEW;end'}
+camSheet=function(n){sel=null;updLabels();document.body.classList.add('zoomed');$('#back').hidden=false;const own=camUrl(n),rt=/^rtsp:/i.test(own);
+  let h='<div class="grab"></div><div class="shh"><div><h2>'+esc(n)+'</h2><small>'+(rt?'Live beeld via VLC':own?'Eigen beeld-link':'Nog geen stream-adres op deze telefoon')+'</small></div></div>';
+  if(rt)h+='<button class="nwbig" data-nwv>▶ Bekijk live</button><p class="tip" style="margin-top:4px">'+esc(camMask(own))+'</p>';
+  else if(own)h+='<div class="feed big"><img alt="Camerabeeld" src="'+esc(own)+'" style="width:100%;height:100%;object-fit:cover;border-radius:14px"></div>';
+  else h+='<div class="feed big">Geen stream-adres ingesteld</div><p class="tip" style="margin-top:4px">Vul hieronder het rtsp-adres van deze camera in (zelfde als op de tablet). Het blijft alleen op deze telefoon. VLC moet op je telefoon staan.</p>';
+  if(n==='Deurbel')h+='<h3>Deurbel</h3><div class="rw"><span>🔔</span><div class="l"><b>Laatst aangebeld</b><small>'+esc(nwWhen(NW.dbT))+'</small></div></div>';
+  h+='<h3>Stream-adres</h3><div class="nwcs"><input placeholder="rtsp://gebruiker:wachtwoord@192.168.178.x:554/…" value="'+esc(own)+'" autocomplete="off"><button data-nws>Opslaan</button></div>';
+  sIn.innerHTML=h;sheet.classList.add('open');sheet.scrollTop=0;
+  const v=sIn.querySelector('[data-nwv]');if(v)v.onclick=e=>{e.stopPropagation();camVlc(own)};
+  sIn.querySelector('[data-nws]').onclick=e=>{e.stopPropagation();const x=sIn.querySelector('.nwcs input').value.trim();try{x?localStorage.setItem(camKey(n),x):localStorage.removeItem(camKey(n))}catch(er){}toast(x?'💾 Stream-adres bewaard':'🗑️ Stream-adres gewist');camSheet(n)}};
+
+// ---- extra regels in de ruimte-onderbalk: beweging, verkeerslicht, deurbel
+{const _r=renderSheet;renderSheet=function(){_r.apply(this,arguments);const r=sel;if(!r)return;try{let h='';
+  const P=r.dev.filter(d=>d.t==='pir');
+  if(P.length)h+='<h3>Beweging</h3>'+P.map(d=>'<div class="rw"><span>👣</span><div class="l"><b>'+esc(d.n.replace(/^Beweging /,'').replace(/^./,c=>c.toUpperCase()))+'</b><small>'+(d.lastMo?'Laatst '+esc(nwWhen(d.lastMo)):'Nog niks gezien')+'</small></div><span class="pill '+(d.v==='Beweging!'?'bad':'ok')+'">'+esc(d.v)+'</span></div>').join('');
+  if(r.l===2&&r.id==='Overloop zolder'){const s=vlState();h+='<h3>Verkeerslicht</h3><button class="rw nwrw" data-nwvl><span class="nwdot" style="background:'+s.c+';color:'+s.c+'"></span><div class="l"><b>🚦 '+esc(s.t)+'</b><small>Tik voor bediening en tijden</small></div><span>›</span></button>'}
+  if(r.l===0&&r.id==='Voortuin'){const now=NW.dbT&&Date.now()-NW.dbT<2*60e3;h+='<h3>Deurbel</h3><button class="rw nwrw" data-nwdb><span>🔔</span><div class="l"><b>'+(now?'Er wordt aangebeld!':'Laatst aangebeld')+'</b><small>'+esc(nwWhen(NW.dbT))+' · tik voor beeld</small></div><span>›</span></button>'}
+  if(!h)return;const box=document.createElement('div');box.innerHTML=h;const tip=sIn.querySelector('.tip');[...box.childNodes].forEach(n=>tip?sIn.insertBefore(n,tip):sIn.appendChild(n));
+  const b1=sIn.querySelector('[data-nwvl]');if(b1)b1.onclick=e=>{e.stopPropagation();vlOpen()};
+  const b2=sIn.querySelector('[data-nwdb]');if(b2)b2.onclick=e=>{e.stopPropagation();camSheet('Deurbel')}}catch(e){console.warn('nw sheet',e)}}}
+
+// ---- meldingen: aanbellen (2 min) en beweging terwijl niemand thuis (10 min)
+{const _la=lvAlerts;lvAlerts=function(){_la.apply(this,arguments);if(!LV.ok)return;const add=[];
+  if(NW.dbT&&Date.now()-NW.dbT<2*60e3)add.push(['urgent','🔔','Deurbel','Er werd aangebeld om '+nwHm(NW.dbT)]);
+  const why=nwWeg();if(why)NW.pir.forEach(d=>{if(d.lastMo&&Date.now()-d.lastMo<10*60e3)add.push(['urgent','🚨',d.n,'Beweging om '+nwHm(d.lastMo)+' terwijl '+why])});
+  if(!add.length)return;ALERTS.unshift(...add);const u=ALERTS.filter(a=>a[0]==='urgent').length,bt=$('#alertBtn');bt.className='chip alerts'+(u?' urgent':' warn');
+  $('#alertTxt').textContent=u?u+' urgent':ALERTS.length+' meldingen'}}
+{const _as=alertsSheet;alertsSheet=function(){_as.apply(this,arguments);if(NW.dbT&&Date.now()-NW.dbT<2*60e3){const b=document.createElement('button');b.className='nwbig';b.textContent='📹 Bekijk de deurbel';
+  b.onclick=e=>{e.stopPropagation();camSheet('Deurbel')};const h3=sIn.querySelector('h3');h3?h3.before(b):sIn.appendChild(b)}}}
+
+// ---- bijwerken na elke Homey-ronde
+function nwUpd(){if(!LV.ok)return;let ch=false;
+  NW.pir.forEach(d=>{const m=nwCap(d.id,'alarm_motion');if(m===undefined)return;if(m)d.lastMo=Date.now();const s=m?'Beweging!':'Rustig';if(s!==d.v){d.v=s;ch=true}});
+  const on=!!nwCap(NW.dbId,'alarm_doorbell');
+  if(on&&NW.dbPrev===false){NW.dbT=Date.now();try{localStorage.setItem('db_last',String(NW.dbT))}catch(e){}toast('🔔 Er wordt aangebeld!');try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}ch=true}
+  NW.dbPrev=on;
+  const vk=JSON.stringify(vlState()),vc=vk!==NW.vlK;if(vc){NW.vlK=vk;ch=true}
+  const typing=document.activeElement&&document.activeElement.tagName==='INPUT';
+  if(ch){lvAlerts();if(sel&&!typing)renderSheet()}
+  if(vc&&!typing)vlDraw()}
+{const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{nwUpd()}catch(e){console.warn('nw',e)}return r}}
+// deurbel iets vaker checken als de app open staat (alleen de deurbel, licht)
+setInterval(async()=>{if(!LV.ok||document.hidden||NW.busy)return;NW.busy=1;
+  try{const r=await fetch(lvBase()+'/api/manager/devices/device/'+NW.dbId,{headers:lvH(),cache:'no-store'});if(r.ok){const h=await r.json();const i=LV.all.findIndex(x=>x.id===NW.dbId);if(i>=0)LV.all[i]=h;else LV.all.push(h);nwUpd()}}catch(e){}NW.busy=0},1500);
+
 </script>
 
 </html>
