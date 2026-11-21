@@ -2106,7 +2106,7 @@ async function camShot(d,img,inf){if(CAM.dev!==d)return;const L=camAll(d);let ok
     catch(e){errs.push(e.message)}}
   if(!ok)inf.innerHTML='<span class="dot"></span>Beeld ophalen lukte niet ('+xaEsc(errs[0]||'geen beeld gevonden')+')'+(L.length>1?' <small>· '+L.length+' pogingen</small>':'');
   if(CAM.dev===d)CAM.t=setTimeout(()=>camShot(d,img,inf),ok?2500:6000)}
-openCam=async function(d,again){camStop();CAM.dev=d;CAM.good=null;if(!again&&LV.ok&&!camOwn(d)){await camImgs()}const own=camOwn(d),hm=camHomey(d),app=camApp(d);
+openCam=async function(d,again){camStop();CAM.dev=d;CAM.good=null;if(!again&&LV.ok&&!camOwn(d)){if(CAM.imgs)camImgs();else await camImgs()}const own=camOwn(d),hm=camHomey(d),app=camApp(d);
   cvb.innerHTML='<h2>'+xaEsc(d.n)+'</h2><div class="ci"><span class="dot'+(own||hm?' ok':'')+'"></span><span>'+(own?'Eigen stream':hm?'Beeld uit Homey ophalen…':LV.ok?'Deze camera stuurt geen beeld naar Homey'+(app?' <small>(app: '+xaEsc(app)+')</small>':''):'Niet gekoppeld aan Homey')+'</span></div>'+
     '<div class="feed big">'+(own?'<img alt="Live beeld" src="'+xaEsc(own)+'">':'<img alt="Camerabeeld" hidden><p>'+(hm?'Even geduld…':'Geen beeld beschikbaar.<br>Tik op ⚙️ Stream-adres als je camera een eigen link heeft.')+'</p>')+'</div>'+
     '<div class="cb"><button data-f>⛶ Groot</button><button data-s>⚙️ Stream-adres</button><button data-i>🔍 Details</button></div><pre class="cdx" hidden></pre>'+
@@ -2209,5 +2209,9 @@ function dbCheck(){if(!LV.ok||!LV.all)return;const h=LV.all.find(x=>x.id===DB.id
     toast('🔔 Er wordt aangebeld!');if(d)openCam(d);try{nuDraw()}catch(e){}}
   DB.prev=on}
 {const _p=lvPoll;lvPoll=async function(){const r=await _p.apply(this,arguments);try{dbCheck()}catch(e){}return r}}
+// snelle check van alleen de deurbel (elke seconde), zodat het beeld meteen opent
+setInterval(async()=>{if(!LV.ok||document.hidden||DB.busy)return;DB.busy=1;
+  try{const r=await fetch(lvBase()+'/api/manager/devices/device/'+DB.id,{headers:lvH(),cache:'no-store'});if(r.ok){const h=await r.json();
+    if(LV.all){const i=LV.all.findIndex(x=>x.id===DB.id);if(i>=0)LV.all[i]=h}dbCheck()}}catch(e){}DB.busy=0},1000);
 {const _u=xaUrgent;xaUrgent=function(){const o=_u();if(DB.t&&Date.now()-DB.t<2*60e3)o.unshift(['w','🔔 Er stond iemand aan de deur ('+new Date(DB.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})+')']);return o}}
 </script></body></html>
