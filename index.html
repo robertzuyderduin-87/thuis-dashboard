@@ -2214,4 +2214,8 @@ setInterval(async()=>{if(!LV.ok||document.hidden||DB.busy)return;DB.busy=1;
   try{const r=await fetch(lvBase()+'/api/manager/devices/device/'+DB.id,{headers:lvH(),cache:'no-store'});if(r.ok){const h=await r.json();
     if(LV.all){const i=LV.all.findIndex(x=>x.id===DB.id);if(i>=0)LV.all[i]=h}dbCheck()}}catch(e){}DB.busy=0},1000);
 {const _u=xaUrgent;xaUrgent=function(){const o=_u();if(DB.t&&Date.now()-DB.t<2*60e3)o.unshift(['w','🔔 Er stond iemand aan de deur ('+new Date(DB.t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})+')']);return o}}
+
+// ===================== FOTOSHOW: open vensters eerst sluiten (het Sonos-venster bleef er anders bovenop staan) =====================
+{const _xs=xaStart;xaStart=function(){if(XA.on)return;['sonall','mupick','henk','vlp','xaag'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=true});
+  try{if(typeof vlP!=='undefined')vlP._dirty=false}catch(e){}return _xs.apply(this,arguments)}}
 </script></body></html>
